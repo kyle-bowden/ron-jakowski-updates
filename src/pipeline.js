@@ -127,22 +127,45 @@ function schedulePendingEntries(schedule) {
 
     if (delay <= 0) {
       console.log(`  ${label} — overdue, sending now`);
-      dispatchSend(entry);
+      dispatchSend(entry, schedule);
     } else {
       console.log(`  ${label} — ${sendTime.toLocaleTimeString()} (in ${Math.round(delay / 60000)} min)`);
-      setTimeout(() => dispatchSend(entry), delay);
+      setTimeout(() => dispatchSend(entry, schedule), delay);
     }
   }
 
   console.log(`\nMessages will send between now and 22:00.`);
 }
 
-async function dispatchSend(entry) {
+function findNextSendTime(schedule, currentIndex) {
+  const future = schedule.entries
+    .filter((e, i) => i !== currentIndex && !e.sent && e.sendAt)
+    .map((e) => new Date(e.sendAt))
+    .filter((d) => d.getTime() > Date.now())
+    .sort((a, b) => a - b);
+
+  return future.length > 0 ? future[0] : null;
+}
+
+function formatTime(date) {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+async function dispatchSend(entry, schedule) {
   try {
     console.log(`\n[${new Date().toISOString()}] Sending: ${entry.story.post_title}`);
     await runSend(entry.story, entry.voicePath);
     await markEntrySent(entry.index);
     console.log(`Marked entry ${entry.index} as sent`);
+
+    const nextTime = findNextSendTime(schedule, entry.index);
+    if (nextTime) {
+      await sendTextMessage(`...next drop incoming at ${formatTime(nextTime)}. stay alert.`);
+      console.log(`Teased next drop at ${formatTime(nextTime)}`);
+    } else {
+      await sendTextMessage("...that's all I got for today. stay vigilant. they're always watching.");
+      console.log("Sent end-of-day message");
+    }
   } catch (err) {
     console.error(`Send failed for "${entry.story.post_title}":`, err.message);
   }
