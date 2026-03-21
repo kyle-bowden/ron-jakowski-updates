@@ -1,0 +1,16 @@
+{
+  "name": "ron-jakowski-conspiracy",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "run-now": "node src/index.js --run-now"
+  },
+  "dependencies": {
+    "@mendable/firecrawl-js": "latest",
+    "dotenv": "^16.4.7",
+    "elevenlabs": "latest",
+    "node-cron": "^3.0.3",
+    "zod": "^3.24.0"
+  }
+}
