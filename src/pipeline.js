@@ -66,8 +66,20 @@ export async function runSend(story, voicePath) {
   console.log("Messages sent");
 }
 
+async function prepareScheduleFromStored() {
+  const stories = await loadStories();
+  if (!stories.length) {
+    throw new Error("No stored stories. Run --scrape first or add stories to data/stories.json.");
+  }
+  return prepareScheduleFromStories(stories);
+}
+
 async function prepareNewSchedule() {
   const stories = await runScrape();
+  return prepareScheduleFromStories(stories);
+}
+
+async function prepareScheduleFromStories(stories) {
   console.log(`\nGenerating voice notes for all ${stories.length} stories...`);
 
   const entries = [];
@@ -149,6 +161,21 @@ export async function runDailyPipeline() {
   }
 
   const schedule = await prepareNewSchedule();
+  schedulePendingEntries(schedule);
+}
+
+export async function runFromStored_daily() {
+  console.log(`[${new Date().toISOString()}] Running from stored stories...`);
+
+  const existing = await getTodaySchedule();
+  if (existing) {
+    const sentCount = existing.entries.filter((e) => e.sent).length;
+    console.log(`Found existing schedule for today (${sentCount}/${existing.entries.length} sent)`);
+    schedulePendingEntries(existing);
+    return;
+  }
+
+  const schedule = await prepareScheduleFromStored();
   schedulePendingEntries(schedule);
 }
 

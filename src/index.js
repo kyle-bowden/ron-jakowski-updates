@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { runPipeline, runDailyPipeline, runScrape, runFromStored } from "./pipeline.js";
+import { runPipeline, runDailyPipeline, runScrape, runFromStored, runFromStored_daily } from "./pipeline.js";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -23,6 +23,10 @@ async function run() {
     case "--run-once":
       await runPipeline();
       process.exit(0);
+      break;
+
+    case "--resume":
+      await runFromStored_daily();
       break;
 
     case "--scrape":
