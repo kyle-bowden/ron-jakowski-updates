@@ -16,10 +16,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: url('res/images/background.jpg') no-repeat center center fixed;
+      background: url('res/images/background-web.jpg') no-repeat center center;
       background-size: cover;
+      background-attachment: scroll;
       font-family: 'Courier New', monospace;
-      overflow: hidden;
+      overflow-x: hidden;
     }
 
     body::before {
@@ -81,6 +82,21 @@
     .cta:hover::before,
     .cta:hover::after {
       opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        background-image: url('res/images/background-mobile.jpg');
+        min-height: 100svh;
+      }
+
+      .container {
+        padding: 1.5rem;
+      }
+
+      .cta {
+        padding: 0.8rem 2rem;
+      }
     }
 
     .scanline {
