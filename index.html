@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Reality Protocol — Brotherhood of Awareness</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: url('res/images/background.jpg') no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .manifesto {
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      font-size: clamp(0.9rem, 2vw, 1.1rem);
+      color: #c0c0c0;
+      line-height: 1.7;
+      text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+    }
+
+    .cta {
+      display: inline-block;
+      padding: 1rem 3rem;
+      border: 2px solid #d4af37;
+      color: #d4af37;
+      text-decoration: none;
+      font-family: 'Courier New', monospace;
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      transition: all 0.3s ease;
+      position: relative;
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .cta:hover {
+      background: #d4af37;
+      color: #000;
+      box-shadow: 0 0 30px rgba(212, 175, 55, 0.4), 0 0 60px rgba(212, 175, 55, 0.15);
+    }
+
+    .cta::before,
+    .cta::after {
+      content: '[ ';
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .cta::after {
+      content: ' ]';
+    }
+
+    .cta:hover::before,
+    .cta:hover::after {
+      opacity: 1;
+    }
+
+    .scanline {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.08) 2px,
+        rgba(0, 0, 0, 0.08) 4px
+      );
+    }
+  </style>
+</head>
+<body>
+  <div class="scanline"></div>
+  <div class="container">
+    <p class="manifesto">Listen — I don't have much time. They're watching this page RIGHT NOW. Everything they don't want you to know? The cover-ups, the deepfakes, the signals hidden in plain sight? I'm sending it all. Raw. Unfiltered. Before they shut me down. If you're seeing this... you were meant to find it.</p>
+    <a href="https://t.me/ronjakowski" class="cta" target="_blank" rel="noopener">Enter the Protocol</a>
+  </div>
+</body>
+</html>
