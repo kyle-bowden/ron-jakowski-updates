@@ -101,6 +101,129 @@
       }
     }
 
+    /* Hidden link — nearly invisible text with random shimmer */
+    .ghost-link {
+      position: absolute;
+      color: rgba(255, 255, 255, 0.03);
+      text-decoration: none;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      transition: color 0.5s ease, text-shadow 0.5s ease;
+      cursor: default;
+      animation: ghost-shimmer var(--shimmer-duration, 8s) ease-in-out infinite;
+      animation-delay: var(--shimmer-delay, 0s);
+    }
+
+    .ghost-link:hover {
+      color: rgba(212, 175, 55, 0.6);
+      text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+      cursor: pointer;
+      animation: none;
+    }
+
+    @keyframes ghost-shimmer {
+      0%, 85%, 100% { color: rgba(255, 255, 255, 0.03); text-shadow: none; }
+      90% { color: rgba(212, 175, 55, 0.25); text-shadow: 0 0 6px rgba(212, 175, 55, 0.15); }
+      93% { color: rgba(255, 255, 255, 0.03); text-shadow: none; }
+      95% { color: rgba(212, 175, 55, 0.15); text-shadow: 0 0 4px rgba(212, 175, 55, 0.1); }
+    }
+
+    .ghost-1 {
+      bottom: 12%;
+      left: 8%;
+      --shimmer-duration: 7s;
+      --shimmer-delay: 2s;
+    }
+
+    .ghost-2 {
+      top: 15%;
+      right: 6%;
+      --shimmer-duration: 11s;
+      --shimmer-delay: 5s;
+    }
+
+    /* Hidden link — glitch patch with random flashes */
+    .glitch-zone {
+      position: absolute;
+      width: 60px;
+      height: 40px;
+      opacity: 0;
+      cursor: default;
+      z-index: 1;
+      animation: glitch-appear 6s ease-in-out infinite;
+      animation-delay: 3s;
+    }
+
+    .glitch-zone:hover {
+      opacity: 1;
+      cursor: pointer;
+      animation: none;
+    }
+
+    .glitch-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        rgba(212, 175, 55, 0.15) 1px,
+        transparent 2px,
+        transparent 4px
+      );
+      animation: glitch-flicker 0.15s infinite;
+    }
+
+    @keyframes glitch-appear {
+      0%, 88%, 100% { opacity: 0; }
+      90% { opacity: 0.7; transform: translate(-1px, 2px); }
+      91% { opacity: 0; }
+      93% { opacity: 0.5; transform: translate(2px, -1px); }
+      94% { opacity: 0; }
+    }
+
+    @keyframes glitch-flicker {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-2px); }
+      75% { transform: translateX(2px); }
+    }
+
+    .glitch-1 {
+      top: 30%;
+      left: 15%;
+    }
+
+    /* Hidden element — revealed by Konami-style key sequence */
+    .secret-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.95);
+      border-top: 1px solid #d4af37;
+      padding: 1.5rem;
+      text-align: center;
+      z-index: 10;
+      transform: translateY(100%);
+      transition: transform 0.5s ease;
+      font-size: 0.85rem;
+      color: #888;
+    }
+
+    .secret-panel.revealed {
+      transform: translateY(0);
+    }
+
+    .secret-panel a {
+      color: #d4af37;
+      text-decoration: none;
+      border-bottom: 1px solid #d4af37;
+    }
+
+    .secret-panel a:hover {
+      color: #fff;
+    }
+
     .scanline {
       position: fixed;
       inset: 0;
@@ -122,5 +245,31 @@
     <p class="manifesto">Listen — I don't have much time. They're watching this page RIGHT NOW. Everything they don't want you to know? The cover-ups, the deepfakes, the signals hidden in plain sight? I'm sending it all. Raw. Unfiltered. Before they shut me down. If you're seeing this... you were meant to find it.</p>
     <a href="https://t.me/ronjakowski" class="cta" target="_blank" rel="noopener">Enter the Protocol</a>
   </div>
+
+  <!-- Hidden: ghost text links -->
+  <a href="autobiography.html" class="ghost-link ghost-1">who is cal?</a>
+  <a href="autobiography.html" class="ghost-link ghost-2">find the archive</a>
+
+  <!-- Hidden: glitch zone -->
+  <a href="autobiography.html" class="glitch-zone glitch-1" title=""></a>
+
+  <!-- Hidden: secret panel (type "ron") -->
+  <div class="secret-panel" id="secretPanel">
+    You found it. Ron left a trail. Cal picked it up.<br>
+    <a href="autobiography.html">Read Cal's story &rarr;</a>
+  </div>
+
+  <script>
+    // Reveal secret panel by typing "ron"
+    let keys = '';
+    document.addEventListener('keydown', (e) => {
+      keys += e.key.toLowerCase();
+      if (keys.length > 10) keys = keys.slice(-10);
+      if (keys.includes('ron')) {
+        document.getElementById('secretPanel').classList.add('revealed');
+        keys = '';
+      }
+    });
+  </script>
 </body>
 </html>

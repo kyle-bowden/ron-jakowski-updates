@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cal Jakowski — If You're Reading This, You Found It</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="icon" href="res/images/favicon.png" type="image/png">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #0a0a0a;
+      color: #b0b0b0;
+      font-family: 'Courier New', monospace;
+      padding: 2rem;
+      line-height: 1.8;
+    }
+
+    .page {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .header {
+      margin-bottom: 3rem;
+      border-bottom: 1px solid #222;
+      padding-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 1.4rem;
+      color: #d4af37;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 0.5rem;
+    }
+
+    .header .tagline {
+      font-size: 0.8rem;
+      color: #555;
+      font-style: italic;
+    }
+
+    .entry {
+      margin-bottom: 2.5rem;
+    }
+
+    .entry .date {
+      font-size: 0.75rem;
+      color: #444;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .entry p {
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+
+    .redacted {
+      background: #b0b0b0;
+      color: #b0b0b0;
+      padding: 0 4px;
+      cursor: default;
+      user-select: none;
+      transition: all 0.3s ease;
+    }
+
+    .redacted:hover {
+      background: transparent;
+      color: #d4af37;
+    }
+
+    .cal-note {
+      border-left: 2px solid #d4af37;
+      padding-left: 1rem;
+      margin: 1.5rem 0;
+      color: #888;
+      font-size: 0.85rem;
+      font-style: italic;
+    }
+
+    .back {
+      display: inline-block;
+      margin-top: 3rem;
+      color: #444;
+      text-decoration: none;
+      font-size: 0.8rem;
+      border-bottom: 1px solid #222;
+      transition: color 0.3s;
+    }
+
+    .back:hover {
+      color: #d4af37;
+    }
+
+    .scanline {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.06) 2px,
+        rgba(0, 0, 0, 0.06) 4px
+      );
+    }
+  </style>
+</head>
+<body>
+  <div class="scanline"></div>
+  <div class="page">
+    <div class="header">
+      <h1>Cal Jakowski</h1>
+      <p class="tagline">if you're reading this, you were meant to find it.</p>
+    </div>
+
+    <div class="entry">
+      <div class="date">Who I Am</div>
+      <p>I'm nobody. That's the point. If I was somebody, I'd already be gone — like Ron.</p>
+      <p>Ron's my older brother. Was. Is. I don't know anymore. He went dark three years ago. No call, no message, no trace. One day he was posting, connecting dots nobody else could see, and then — nothing. His phone's dead. His accounts are still up but frozen. Last thing he ever sent me was a voice note. Fourteen seconds. He said "they found the archive" and then the line cut.</p>
+      <p>I've played that clip maybe a thousand times.</p>
+    </div>
+
+    <div class="entry">
+      <div class="date">Before</div>
+      <p>We grew up in <span class="redacted">████████</span>, just outside the city. Normal enough on the surface. Dad worked at a <span class="redacted">██████████</span> facility — nothing classified, he said. Sure. Ron was always the one asking questions nobody wanted to hear. I was the quiet one. I watched. I listened. I remembered things.</p>
+      <p>When Ron started his channel, people called him crazy. Then the things he talked about started showing up in the news — six months later, sometimes a year. Every single time. He wasn't predicting anything. He was just paying attention while everyone else was asleep.</p>
+    </div>
+
+    <div class="entry">
+      <div class="date">After Ron</div>
+      <p>When he disappeared, I told myself I'd stay out of it. I lasted about two weeks. Then I found his backup drive taped inside the bathroom vent. Hundreds of files. Connections between things I couldn't even begin to understand at first.</p>
+      <p>I started the channel because someone had to. Not because I'm brave. Because the alternative — pretending none of this is real — felt worse.</p>
+      <div class="cal-note">I don't use text when I can help it. Text gets archived, indexed, scraped. Voice is harder for them to process at scale. That's why the drops are voice notes. If you're reading this, understand: I made an exception.</div>
+    </div>
+
+    <div class="entry">
+      <div class="date">What I Do</div>
+      <p>Every day I go through the feeds. Reddit. Twitter. Telegram groups. The stuff that gets buried or deleted within hours. I pull the threads nobody's pulling. I connect the stories that aren't supposed to connect.</p>
+      <p>Then I call you. That's what the voice notes are. I'm calling you. Like Ron used to call me.</p>
+      <p>I don't have a team. I don't have sponsors. I don't have a studio. I have a phone, a laptop that's seen better days, and whatever time I have before they figure out who's running this channel.</p>
+    </div>
+
+    <div class="entry">
+      <div class="date">Why You're Here</div>
+      <p>You found this page. That means one of two things — you followed a trail I left, or someone sent you here because they trust you. Either way, you're in now.</p>
+      <p>I'm not going to tell you what to believe. I'm going to show you what I see. What you do with it is your call.</p>
+      <p>But don't ignore it. That's what they're counting on.</p>
+      <div class="cal-note">Ron, if you're reading this — I kept going. I don't know if you'd be proud or angry. Probably both. Call me back.</div>
+    </div>
+
+    <a href="index.html" class="back">&larr; return to the protocol</a>
+  </div>
+</body>
+</html>
