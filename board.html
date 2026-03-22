@@ -50,25 +50,8 @@
       z-index: 1;
       min-height: calc(100vh - 120px);
       padding: 2rem 2rem 4rem;
-      background:
-        repeating-linear-gradient(
-          45deg,
-          transparent,
-          transparent 8px,
-          rgba(0, 0, 0, 0.02) 8px,
-          rgba(0, 0, 0, 0.02) 16px
-        ),
-        repeating-linear-gradient(
-          -45deg,
-          transparent,
-          transparent 8px,
-          rgba(0, 0, 0, 0.015) 8px,
-          rgba(0, 0, 0, 0.015) 16px
-        ),
-        radial-gradient(ellipse at 20% 50%, rgba(180, 130, 60, 0.15) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 30%, rgba(160, 110, 50, 0.1) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 80%, rgba(140, 100, 40, 0.12) 0%, transparent 55%),
-        linear-gradient(135deg, #3d2b1a 0%, #4a3420 25%, #3a2818 50%, #42301e 75%, #3d2b1a 100%);
+      background: url('res/images/evidence_board-web.jpg') no-repeat center center;
+      background-size: cover;
       background-attachment: fixed;
     }
 
@@ -704,6 +687,111 @@
       box-shadow: none;
     }
 
+    /* Poll styles */
+    .card-poll {
+      margin: 1rem 0;
+      padding: 0.8rem;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px dashed rgba(0, 0, 0, 0.15);
+      border-radius: 3px;
+    }
+
+    .poll-question {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #2a2010;
+      margin-bottom: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .poll-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .poll-option {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.6rem;
+      background: rgba(212, 175, 55, 0.08);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 0.7rem;
+      color: #3a3520;
+      transition: all 0.2s ease;
+      text-align: left;
+      width: 100%;
+    }
+
+    .poll-option:hover:not(.voted) {
+      background: rgba(212, 175, 55, 0.15);
+      border-color: rgba(212, 175, 55, 0.4);
+    }
+
+    .poll-option.voted {
+      cursor: default;
+    }
+
+    .poll-option.selected {
+      border-color: #d4af37;
+      background: rgba(212, 175, 55, 0.12);
+    }
+
+    .poll-bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+      border-radius: 3px;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .poll-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: rgba(212, 175, 55, 0.15);
+      transition: width 0.6s ease;
+      border-radius: 3px;
+    }
+
+    .poll-option-text, .poll-pct {
+      position: relative;
+      z-index: 1;
+    }
+
+    .poll-option-text {
+      flex: 1;
+    }
+
+    .poll-pct {
+      font-size: 0.65rem;
+      color: #8b6914;
+      min-width: 30px;
+      text-align: right;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .poll-option.voted .poll-pct {
+      opacity: 1;
+    }
+
+    .poll-total {
+      font-size: 0.6rem;
+      color: #888;
+      margin-top: 0.4rem;
+      text-align: right;
+      letter-spacing: 0.05em;
+    }
+
     /* Mobile responsive */
     @media (max-width: 768px) {
       .board-header {
@@ -861,6 +949,89 @@
         window.SUPABASE_CONFIG.anonKey
       );
 
+      // ── Poll voter identity ──
+      function getVoterHash() {
+        let hash = localStorage.getItem('evidence_board_voter');
+        if (!hash) {
+          hash = crypto.randomUUID();
+          localStorage.setItem('evidence_board_voter', hash);
+        }
+        return hash;
+      }
+
+      function getVotedPolls() {
+        try {
+          return JSON.parse(localStorage.getItem('evidence_board_voted') || '[]');
+        } catch { return []; }
+      }
+
+      function markPollVoted(pollId) {
+        const voted = getVotedPolls();
+        if (!voted.includes(pollId)) {
+          voted.push(pollId);
+          localStorage.setItem('evidence_board_voted', JSON.stringify(voted));
+        }
+      }
+
+      function hasVotedPoll(pollId) {
+        return getVotedPolls().includes(pollId);
+      }
+
+      async function fetchPollResults(pollId) {
+        const { data: votes } = await supabaseClient
+          .from('poll_votes')
+          .select('option_index')
+          .eq('poll_id', pollId);
+        return votes || [];
+      }
+
+      function updatePollUI(pollEl, votes, selectedIndex) {
+        const buttons = pollEl.querySelectorAll('.poll-option');
+        const total = votes.length;
+
+        // Count per option
+        const counts = {};
+        for (const v of votes) {
+          counts[v.option_index] = (counts[v.option_index] || 0) + 1;
+        }
+
+        buttons.forEach((btn, i) => {
+          btn.classList.add('voted');
+          if (i === selectedIndex) btn.classList.add('selected');
+          const count = counts[i] || 0;
+          const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+          btn.querySelector('.poll-bar-fill').style.width = pct + '%';
+          btn.querySelector('.poll-pct').textContent = pct + '%';
+        });
+
+        const totalEl = pollEl.querySelector('.poll-total');
+        totalEl.textContent = total + (total === 1 ? ' vote' : ' votes');
+      }
+
+      async function showPollResults(pollId, pollEl, selectedIndex) {
+        const votes = await fetchPollResults(pollId);
+        updatePollUI(pollEl, votes, selectedIndex);
+      }
+
+      async function handlePollVote(pollId, optionIndex, pollEl) {
+        if (hasVotedPoll(pollId)) return;
+
+        const voterHash = getVoterHash();
+        const { error } = await supabaseClient
+          .from('poll_votes')
+          .insert({ poll_id: pollId, option_index: optionIndex, voter_hash: voterHash });
+
+        if (error) {
+          // Unique constraint violation — already voted
+          markPollVoted(pollId);
+          await showPollResults(pollId, pollEl);
+          return;
+        }
+
+        markPollVoted(pollId);
+        await showPollResults(pollId, pollEl, optionIndex);
+      }
+
       // ── Cache helpers ──
       function getCachedStories() {
         try {
@@ -890,7 +1061,8 @@
           .select(`
             id, post_title, content_summary, text_messages,
             voice_url, discussion_link, created_at,
-            story_tags ( tag_id, tags ( id, name, color ) )
+            story_tags ( tag_id, tags ( id, name, color ) ),
+            polls ( id, question, options )
           `)
           .order('created_at', { ascending: false })
           .range(offset, offset + limit - 1);
@@ -1138,6 +1310,64 @@
 
               if (mediaGrid.children.length > 0) {
                 article.appendChild(mediaGrid);
+              }
+            }
+
+            // Poll
+            const poll = story.polls && story.polls.length > 0 ? story.polls[0] : null;
+            if (poll) {
+              const pollEl = document.createElement('div');
+              pollEl.className = 'card-poll';
+              pollEl.dataset.pollId = poll.id;
+
+              const questionEl = document.createElement('div');
+              questionEl.className = 'poll-question';
+              questionEl.textContent = poll.question;
+              pollEl.appendChild(questionEl);
+
+              const optionsEl = document.createElement('div');
+              optionsEl.className = 'poll-options';
+
+              const options = poll.options || [];
+              for (let oi = 0; oi < options.length; oi++) {
+                const btn = document.createElement('button');
+                btn.className = 'poll-option';
+                btn.dataset.index = oi;
+
+                const optText = document.createElement('span');
+                optText.className = 'poll-option-text';
+                optText.textContent = options[oi];
+
+                const bar = document.createElement('div');
+                bar.className = 'poll-bar';
+                const barFill = document.createElement('div');
+                barFill.className = 'poll-bar-fill';
+                bar.appendChild(barFill);
+
+                const pct = document.createElement('span');
+                pct.className = 'poll-pct';
+                pct.textContent = '0%';
+
+                btn.appendChild(optText);
+                btn.appendChild(bar);
+                btn.appendChild(pct);
+                optionsEl.appendChild(btn);
+
+                btn.addEventListener('click', () => handlePollVote(poll.id, oi, pollEl));
+              }
+
+              pollEl.appendChild(optionsEl);
+
+              const totalEl = document.createElement('div');
+              totalEl.className = 'poll-total';
+              totalEl.textContent = '0 votes';
+              pollEl.appendChild(totalEl);
+
+              article.appendChild(pollEl);
+
+              // Show results immediately if already voted
+              if (hasVotedPoll(poll.id)) {
+                showPollResults(poll.id, pollEl);
               }
             }
 

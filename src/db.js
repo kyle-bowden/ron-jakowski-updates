@@ -63,6 +63,23 @@ export async function initDb() {
       tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
       PRIMARY KEY (story_id, tag_id)
     );
+
+    CREATE TABLE IF NOT EXISTS polls (
+      id SERIAL PRIMARY KEY,
+      story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+      question TEXT NOT NULL,
+      options JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS poll_votes (
+      id SERIAL PRIMARY KEY,
+      poll_id INTEGER NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+      option_index INTEGER NOT NULL,
+      voter_hash TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(poll_id, voter_hash)
+    );
   `);
 
   console.log("Database initialized");

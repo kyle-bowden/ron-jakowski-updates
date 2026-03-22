@@ -9,6 +9,7 @@ import {
   updateStoryVoiceUrl,
 } from "./store.js";
 import { tagStories } from "./tagger.js";
+import { generatePolls } from "./poll-generator.js";
 import { generateVoiceNote } from "./voice.js";
 import { sendSequence, sendTextMessage, sendVoiceNote } from "./telegram.js";
 import { generateGlimpse, updateGlimpseVoiceUrl } from "./glimpses.js";
@@ -74,6 +75,13 @@ export async function runScrape() {
     console.log("Stories tagged");
   } catch (err) {
     console.error("Tagging failed (non-fatal):", err.message);
+  }
+
+  try {
+    await generatePolls(storiesWithIds);
+    console.log("Polls generated");
+  } catch (err) {
+    console.error("Poll generation failed (non-fatal):", err.message);
   }
 
   return storiesWithIds;
