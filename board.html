@@ -507,6 +507,41 @@
       text-transform: uppercase;
     }
 
+    /* Load more button */
+    .load-more {
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      margin: 2rem auto;
+      padding: 1rem 2rem;
+      background: rgba(212, 175, 55, 0.1);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      color: #d4af37;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .load-more:hover {
+      background: rgba(212, 175, 55, 0.2);
+      border-color: rgba(212, 175, 55, 0.6);
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+    }
+
+    .load-more:disabled {
+      opacity: 0.4;
+      cursor: default;
+      border-color: rgba(212, 175, 55, 0.1);
+    }
+
+    .load-more:disabled:hover {
+      background: rgba(212, 175, 55, 0.1);
+      box-shadow: none;
+    }
+
     /* Mobile responsive */
     @media (max-width: 768px) {
       .board-header {
@@ -649,14 +684,39 @@
       let activeTagFilter = null;
       let audioPlayers = new Map();
 
-      // ── Fetch stories from Supabase ──
-      let stories = [];
-      try {
-        const supabaseClient = window.supabase.createClient(
-          window.SUPABASE_CONFIG.url,
-          window.SUPABASE_CONFIG.anonKey
-        );
+      const PAGE_SIZE = 20;
+      const CACHE_KEY = 'evidence_board_cache';
+      const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+      const supabaseClient = window.supabase.createClient(
+        window.SUPABASE_CONFIG.url,
+        window.SUPABASE_CONFIG.anonKey
+      );
+
+      // ── Cache helpers ──
+      function getCachedStories() {
+        try {
+          const raw = sessionStorage.getItem(CACHE_KEY);
+          if (!raw) return null;
+          const cached = JSON.parse(raw);
+          if (Date.now() - cached.timestamp > CACHE_TTL) {
+            sessionStorage.removeItem(CACHE_KEY);
+            return null;
+          }
+          return cached;
+        } catch { return null; }
+      }
+
+      function setCacheStories(stories, offset, hasMore) {
+        try {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+            stories, offset, hasMore, timestamp: Date.now()
+          }));
+        } catch { /* storage full, ignore */ }
+      }
+
+      // ── Fetch page from Supabase ──
+      async function fetchStories(offset, limit) {
         const { data, error } = await supabaseClient
           .from('stories')
           .select(`
@@ -664,10 +724,31 @@
             voice_url, discussion_link, created_at,
             story_tags ( tag_id, tags ( id, name, color ) )
           `)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
 
         if (error) throw error;
-        stories = data || [];
+        return data || [];
+      }
+
+      // ── Initial load (cache or fetch) ──
+      let stories = [];
+      let currentOffset = 0;
+      let hasMore = true;
+
+      try {
+        const cached = getCachedStories();
+        if (cached) {
+          stories = cached.stories;
+          currentOffset = cached.offset;
+          hasMore = cached.hasMore;
+        } else {
+          const data = await fetchStories(0, PAGE_SIZE);
+          stories = data;
+          currentOffset = data.length;
+          hasMore = data.length === PAGE_SIZE;
+          setCacheStories(stories, currentOffset, hasMore);
+        }
       } catch (err) {
         console.error('Supabase fetch error:', err);
       }
@@ -683,218 +764,244 @@
         return;
       }
 
-      // ── Group stories by date ──
-      const groups = new Map();
-      for (const story of stories) {
-        const dateKey = new Date(story.created_at).toLocaleDateString('en-US', {
-          year: 'numeric', month: 'long', day: 'numeric'
-        });
-        if (!groups.has(dateKey)) groups.set(dateKey, []);
-        groups.get(dateKey).push(story);
-      }
-
-      // ── Render day groups ──
+      // ── Render stories into day groups ──
       let cardIndex = 0;
-      for (const [dateLabel, dayStories] of groups) {
-        const groupEl = document.createElement('div');
-        groupEl.className = 'day-group';
 
-        const label = document.createElement('h3');
-        label.className = 'day-label';
-        label.textContent = dateLabel.toUpperCase();
-        label.style.animationDelay = `${cardIndex * 0.05}s`;
-        groupEl.appendChild(label);
+      function renderStories(storiesToRender) {
+        // Group by date
+        const groups = new Map();
+        for (const story of storiesToRender) {
+          const dateKey = new Date(story.created_at).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+          });
+          if (!groups.has(dateKey)) groups.set(dateKey, []);
+          groups.get(dateKey).push(story);
+        }
 
-        const cardsContainer = document.createElement('div');
-        cardsContainer.className = 'evidence-cards';
+        const newCards = [];
+        for (const [dateLabel, dayStories] of groups) {
+          // Check if day group already exists
+          let groupEl = corkBoard.querySelector(`.day-group[data-date="${dateLabel}"]`);
+          let cardsContainer;
 
-        for (const story of dayStories) {
-          const rotation = (Math.random() * 4 - 2).toFixed(2);
-          const tags = (story.story_tags || [])
-            .map(st => st.tags)
-            .filter(Boolean);
-          const tagNames = tags.map(t => t.name).join(',');
+          if (groupEl) {
+            cardsContainer = groupEl.querySelector('.evidence-cards');
+          } else {
+            groupEl = document.createElement('div');
+            groupEl.className = 'day-group';
+            groupEl.dataset.date = dateLabel;
 
-          const article = document.createElement('article');
-          article.className = 'evidence-card';
-          article.id = `story-${story.id}`;
-          article.dataset.tags = tagNames;
-          article.style.setProperty('--rotation', `${rotation}deg`);
-          article.style.transform = `rotate(${rotation}deg)`;
-          article.style.transitionDelay = `${cardIndex * 0.08}s`;
+            const label = document.createElement('h3');
+            label.className = 'day-label';
+            label.textContent = dateLabel.toUpperCase();
+            groupEl.appendChild(label);
 
-          // Pin
-          const pin = document.createElement('div');
-          pin.className = 'pin';
-          article.appendChild(pin);
+            cardsContainer = document.createElement('div');
+            cardsContainer.className = 'evidence-cards';
+            groupEl.appendChild(cardsContainer);
 
-          // Title
-          const title = document.createElement('h4');
-          title.className = 'card-title';
-          title.textContent = story.post_title || 'UNTITLED';
-          article.appendChild(title);
-
-          // Audio player — centerpiece, right after title
-          if (story.voice_url) {
-            const audioContainer = document.createElement('div');
-            audioContainer.className = 'card-audio';
-            audioContainer.dataset.voiceUrl = story.voice_url;
-
-            const playBtn = document.createElement('button');
-            playBtn.className = 'play-btn';
-            playBtn.setAttribute('aria-label', 'Play voice note');
-            playBtn.innerHTML = '&#9654;';
-
-            const audioDetails = document.createElement('div');
-            audioDetails.className = 'audio-details';
-
-            const audioLabel = document.createElement('div');
-            audioLabel.className = 'audio-label';
-            audioLabel.textContent = "Cal's voice note";
-
-            const progressBar = document.createElement('div');
-            progressBar.className = 'progress-bar';
-            const progressFill = document.createElement('div');
-            progressFill.className = 'progress-fill';
-            progressBar.appendChild(progressFill);
-
-            audioDetails.appendChild(audioLabel);
-            audioDetails.appendChild(progressBar);
-
-            const durationSpan = document.createElement('span');
-            durationSpan.className = 'duration';
-            durationSpan.textContent = '0:00';
-
-            audioContainer.appendChild(playBtn);
-            audioContainer.appendChild(audioDetails);
-            audioContainer.appendChild(durationSpan);
-            article.appendChild(audioContainer);
-
-            setupAudioPlayer(playBtn, progressBar, progressFill, durationSpan, story.voice_url, story.id);
+            // Insert before load-more button if it exists
+            const loadMoreBtn = corkBoard.querySelector('.load-more');
+            if (loadMoreBtn) {
+              corkBoard.insertBefore(groupEl, loadMoreBtn);
+            } else {
+              corkBoard.appendChild(groupEl);
+            }
           }
 
-          // Summary
-          const summary = document.createElement('p');
-          summary.className = 'card-summary';
-          const fullSummary = story.content_summary || '';
-          summary.textContent = fullSummary.length > 200
-            ? fullSummary.slice(0, 200) + '...'
-            : fullSummary;
-          article.appendChild(summary);
+          for (const story of dayStories) {
+            const rotation = (Math.random() * 4 - 2).toFixed(2);
+            const tags = (story.story_tags || [])
+              .map(st => st.tags)
+              .filter(Boolean);
+            const tagNames = tags.map(t => t.name).join(',');
 
-          // Media grid from text_messages URLs
-          const messages = story.text_messages || [];
-          const allText = messages.join(' ');
-          const urlRegex = /https?:\/\/[^\s)]+/g;
-          const urls = [...new Set((allText.match(urlRegex) || []))];
+            const article = document.createElement('article');
+            article.className = 'evidence-card';
+            article.id = `story-${story.id}`;
+            article.dataset.tags = tagNames;
+            article.style.setProperty('--rotation', `${rotation}deg`);
+            article.style.transform = `rotate(${rotation}deg)`;
+            article.style.transitionDelay = `${cardIndex * 0.08}s`;
 
-          if (urls.length > 0) {
-            const mediaGrid = document.createElement('div');
-            mediaGrid.className = 'card-media';
+            // Pin
+            const pin = document.createElement('div');
+            pin.className = 'pin';
+            article.appendChild(pin);
 
-            for (const url of urls) {
-              const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
-              const isImage = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url);
+            // Title
+            const title = document.createElement('h4');
+            title.className = 'card-title';
+            title.textContent = story.post_title || 'UNTITLED';
+            article.appendChild(title);
 
-              if (ytMatch) {
-                const thumb = document.createElement('a');
-                thumb.className = 'media-thumb';
-                thumb.href = url;
-                thumb.target = '_blank';
-                thumb.rel = 'noopener';
-                thumb.title = 'Watch on YouTube';
+            // Audio player — centerpiece, right after title
+            if (story.voice_url) {
+              const audioContainer = document.createElement('div');
+              audioContainer.className = 'card-audio';
+              audioContainer.dataset.voiceUrl = story.voice_url;
 
-                const img = document.createElement('img');
-                img.src = `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
-                img.alt = 'YouTube video';
-                img.loading = 'lazy';
-                thumb.appendChild(img);
+              const playBtn = document.createElement('button');
+              playBtn.className = 'play-btn';
+              playBtn.setAttribute('aria-label', 'Play voice note');
+              playBtn.innerHTML = '&#9654;';
 
-                const playIcon = document.createElement('div');
-                playIcon.className = 'media-play-icon';
-                playIcon.textContent = '\u25B6';
-                thumb.appendChild(playIcon);
+              const audioDetails = document.createElement('div');
+              audioDetails.className = 'audio-details';
 
-                mediaGrid.appendChild(thumb);
-              } else if (isImage) {
-                const thumb = document.createElement('a');
-                thumb.className = 'media-thumb';
-                thumb.href = url;
-                thumb.target = '_blank';
-                thumb.rel = 'noopener';
-                thumb.title = 'View image';
+              const audioLabel = document.createElement('div');
+              audioLabel.className = 'audio-label';
+              audioLabel.textContent = "Cal's voice note";
 
-                const img = document.createElement('img');
-                img.src = url;
-                img.alt = 'Evidence image';
-                img.loading = 'lazy';
-                img.onerror = () => thumb.remove();
-                thumb.appendChild(img);
+              const progressBar = document.createElement('div');
+              progressBar.className = 'progress-bar';
+              const progressFill = document.createElement('div');
+              progressFill.className = 'progress-fill';
+              progressBar.appendChild(progressFill);
 
-                mediaGrid.appendChild(thumb);
-              } else if (!url.includes(story.discussion_link || '___')) {
-                const thumb = document.createElement('a');
-                thumb.className = 'media-thumb media-thumb-article';
-                thumb.href = url;
-                thumb.target = '_blank';
-                thumb.rel = 'noopener';
+              audioDetails.appendChild(audioLabel);
+              audioDetails.appendChild(progressBar);
 
-                try {
-                  const domain = new URL(url).hostname.replace('www.', '');
-                  thumb.textContent = domain;
-                  thumb.title = url;
-                } catch {
-                  thumb.textContent = 'LINK';
+              const durationSpan = document.createElement('span');
+              durationSpan.className = 'duration';
+              durationSpan.textContent = '0:00';
+
+              audioContainer.appendChild(playBtn);
+              audioContainer.appendChild(audioDetails);
+              audioContainer.appendChild(durationSpan);
+              article.appendChild(audioContainer);
+
+              setupAudioPlayer(playBtn, progressBar, progressFill, durationSpan, story.voice_url, story.id);
+            }
+
+            // Summary
+            const summary = document.createElement('p');
+            summary.className = 'card-summary';
+            const fullSummary = story.content_summary || '';
+            summary.textContent = fullSummary.length > 200
+              ? fullSummary.slice(0, 200) + '...'
+              : fullSummary;
+            article.appendChild(summary);
+
+            // Media grid from text_messages URLs
+            const messages = story.text_messages || [];
+            const allText = messages.join(' ');
+            const urlRegex = /https?:\/\/[^\s)]+/g;
+            const urls = [...new Set((allText.match(urlRegex) || []))];
+
+            if (urls.length > 0) {
+              const mediaGrid = document.createElement('div');
+              mediaGrid.className = 'card-media';
+
+              for (const url of urls) {
+                const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+                const isImage = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url);
+
+                if (ytMatch) {
+                  const thumb = document.createElement('a');
+                  thumb.className = 'media-thumb';
+                  thumb.href = url;
+                  thumb.target = '_blank';
+                  thumb.rel = 'noopener';
+                  thumb.title = 'Watch on YouTube';
+
+                  const img = document.createElement('img');
+                  img.src = `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+                  img.alt = 'YouTube video';
+                  img.loading = 'lazy';
+                  thumb.appendChild(img);
+
+                  const playIcon = document.createElement('div');
+                  playIcon.className = 'media-play-icon';
+                  playIcon.textContent = '\u25B6';
+                  thumb.appendChild(playIcon);
+
+                  mediaGrid.appendChild(thumb);
+                } else if (isImage) {
+                  const thumb = document.createElement('a');
+                  thumb.className = 'media-thumb';
+                  thumb.href = url;
+                  thumb.target = '_blank';
+                  thumb.rel = 'noopener';
+                  thumb.title = 'View image';
+
+                  const img = document.createElement('img');
+                  img.src = url;
+                  img.alt = 'Evidence image';
+                  img.loading = 'lazy';
+                  img.onerror = () => thumb.remove();
+                  thumb.appendChild(img);
+
+                  mediaGrid.appendChild(thumb);
+                } else if (!url.includes(story.discussion_link || '___')) {
+                  const thumb = document.createElement('a');
+                  thumb.className = 'media-thumb media-thumb-article';
+                  thumb.href = url;
+                  thumb.target = '_blank';
+                  thumb.rel = 'noopener';
+
+                  try {
+                    const domain = new URL(url).hostname.replace('www.', '');
+                    thumb.textContent = domain;
+                    thumb.title = url;
+                  } catch {
+                    thumb.textContent = 'LINK';
+                  }
+
+                  mediaGrid.appendChild(thumb);
                 }
+              }
 
-                mediaGrid.appendChild(thumb);
+              if (mediaGrid.children.length > 0) {
+                article.appendChild(mediaGrid);
               }
             }
 
-            if (mediaGrid.children.length > 0) {
-              article.appendChild(mediaGrid);
+            // Footer
+            const footer = document.createElement('div');
+            footer.className = 'card-footer';
+
+            if (story.discussion_link) {
+              const sourceLink = document.createElement('a');
+              sourceLink.className = 'source-link';
+              sourceLink.href = story.discussion_link;
+              sourceLink.target = '_blank';
+              sourceLink.rel = 'noopener';
+              sourceLink.innerHTML = 'SOURCE &rarr;';
+              footer.appendChild(sourceLink);
+            } else {
+              footer.appendChild(document.createElement('span'));
             }
-          }
 
-          // Footer
-          const footer = document.createElement('div');
-          footer.className = 'card-footer';
-
-          if (story.discussion_link) {
-            const sourceLink = document.createElement('a');
-            sourceLink.className = 'source-link';
-            sourceLink.href = story.discussion_link;
-            sourceLink.target = '_blank';
-            sourceLink.rel = 'noopener';
-            sourceLink.innerHTML = 'SOURCE &rarr;';
-            footer.appendChild(sourceLink);
-          } else {
-            footer.appendChild(document.createElement('span'));
-          }
-
-          if (tags.length) {
-            const tagsDiv = document.createElement('div');
-            tagsDiv.className = 'card-tags';
-            for (const tag of tags) {
-              const pill = document.createElement('span');
-              pill.className = 'tag-pill';
-              pill.style.background = tag.color || '#666';
-              pill.dataset.tag = tag.name;
-              pill.textContent = tag.name;
-              pill.addEventListener('click', () => toggleTagFilter(tag.name));
-              tagsDiv.appendChild(pill);
+            if (tags.length) {
+              const tagsDiv = document.createElement('div');
+              tagsDiv.className = 'card-tags';
+              for (const tag of tags) {
+                const pill = document.createElement('span');
+                pill.className = 'tag-pill';
+                pill.style.background = tag.color || '#666';
+                pill.dataset.tag = tag.name;
+                pill.textContent = tag.name;
+                pill.addEventListener('click', () => toggleTagFilter(tag.name));
+                tagsDiv.appendChild(pill);
+              }
+              footer.appendChild(tagsDiv);
             }
-            footer.appendChild(tagsDiv);
-          }
 
-          article.appendChild(footer);
-          cardsContainer.appendChild(article);
-          allCards.push(article);
-          cardIndex++;
+            article.appendChild(footer);
+            cardsContainer.appendChild(article);
+            allCards.push(article);
+            newCards.push(article);
+            cardIndex++;
+          }
         }
 
-        groupEl.appendChild(cardsContainer);
-        corkBoard.appendChild(groupEl);
+        // Observe new cards
+        for (const card of newCards) {
+          observer.observe(card);
+        }
+
+        return newCards;
       }
 
       // ── IntersectionObserver for stagger reveal ──
@@ -907,8 +1014,50 @@
         }
       }, { threshold: 0.1 });
 
-      for (const card of allCards) {
-        observer.observe(card);
+      // ── Initial render ──
+      renderStories(stories);
+
+      // ── Load more button ──
+      if (hasMore) {
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.className = 'load-more';
+        loadMoreBtn.textContent = 'DECLASSIFY MORE FILES';
+        corkBoard.appendChild(loadMoreBtn);
+
+        let loading = false;
+        loadMoreBtn.addEventListener('click', async () => {
+          if (loading || !hasMore) return;
+          loading = true;
+          loadMoreBtn.textContent = 'DECRYPTING...';
+          loadMoreBtn.disabled = true;
+
+          try {
+            const newData = await fetchStories(currentOffset, PAGE_SIZE);
+            if (newData.length > 0) {
+              stories = stories.concat(newData);
+              currentOffset += newData.length;
+              hasMore = newData.length === PAGE_SIZE;
+              setCacheStories(stories, currentOffset, hasMore);
+
+              const newCards = renderStories(newData);
+              // Redraw strings after new cards settle
+              setTimeout(drawRedStrings, 300);
+            } else {
+              hasMore = false;
+            }
+          } catch (err) {
+            console.error('Load more failed:', err);
+          }
+
+          loading = false;
+          if (hasMore) {
+            loadMoreBtn.textContent = 'DECLASSIFY MORE FILES';
+            loadMoreBtn.disabled = false;
+          } else {
+            loadMoreBtn.textContent = 'ALL FILES DECLASSIFIED';
+            loadMoreBtn.disabled = true;
+          }
+        });
       }
 
       // ── Audio player setup ──
@@ -1038,11 +1187,7 @@
         }
       }
 
-      // Draw strings after layout settles and card animations complete
-      requestAnimationFrame(() => {
-        requestAnimationFrame(drawRedStrings);
-      });
-      // Redraw after card stagger animations finish (~cards * 100ms + 500ms buffer)
+      // Draw strings once after card transitions finish
       setTimeout(drawRedStrings, allCards.length * 100 + 500);
 
       // Redraw on resize (debounced)

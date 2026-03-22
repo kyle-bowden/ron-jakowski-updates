@@ -645,18 +645,43 @@
     // Fetch and render evidence preview cards
     (async () => {
       try {
-        const sb = window.supabase.createClient(
-          window.SUPABASE_CONFIG.url,
-          window.SUPABASE_CONFIG.anonKey
-        );
+        const CACHE_KEY = 'evidence_preview_cache';
+        const CACHE_TTL = 5 * 60 * 1000;
+        let stories = null;
 
-        const { data: stories, error } = await sb
-          .from('stories')
-          .select('id, post_title, content_summary, voice_url, created_at')
-          .order('created_at', { ascending: false })
-          .limit(3);
+        // Check cache first
+        try {
+          const raw = sessionStorage.getItem(CACHE_KEY);
+          if (raw) {
+            const cached = JSON.parse(raw);
+            if (Date.now() - cached.timestamp < CACHE_TTL) {
+              stories = cached.data;
+            }
+          }
+        } catch {}
 
-        if (error || !stories || stories.length === 0) return;
+        // Fetch if no cache
+        if (!stories) {
+          const sb = window.supabase.createClient(
+            window.SUPABASE_CONFIG.url,
+            window.SUPABASE_CONFIG.anonKey
+          );
+
+          const { data, error } = await sb
+            .from('stories')
+            .select('id, post_title, content_summary, voice_url, created_at')
+            .order('created_at', { ascending: false })
+            .limit(3);
+
+          if (error || !data || data.length === 0) return;
+          stories = data;
+
+          try {
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: stories, timestamp: Date.now() }));
+          } catch {}
+        }
+
+        if (!stories || stories.length === 0) return;
 
         const container = document.getElementById('evidenceCards');
 
@@ -673,7 +698,7 @@
             ? story.content_summary.slice(0, 120) + '...'
             : story.content_summary;
           const date = new Date(story.created_at).toLocaleDateString('en-US', {
-            month: 'short', day: 'numeric', year: 'numeric'
+            month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
           });
 
           const h3 = document.createElement('h3');
