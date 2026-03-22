@@ -153,11 +153,12 @@
 
     .red-string-path {
       fill: none;
-      stroke-width: 1.5;
-      opacity: 0.5;
+      stroke-width: 3;
+      opacity: 0.8;
       stroke-dasharray: var(--path-length);
       stroke-dashoffset: var(--path-length);
       animation: draw-string 1.5s ease forwards;
+      filter: drop-shadow(0 0 4px rgba(204, 0, 0, 0.5));
     }
 
     @keyframes draw-string {
@@ -202,24 +203,15 @@
       box-shadow:
         2px 3px 8px rgba(0, 0, 0, 0.4),
         0 1px 3px rgba(0, 0, 0, 0.2);
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.5s ease, filter 0.4s ease;
       opacity: 0;
+      transform: translateY(20px) rotate(var(--rotation, 0deg));
       transform-origin: top center;
     }
 
     .evidence-card.visible {
-      animation: card-appear 0.5s ease forwards;
-    }
-
-    @keyframes card-appear {
-      from {
-        opacity: 0;
-        transform: translateY(20px) rotate(var(--rotation, 0deg));
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) rotate(var(--rotation, 0deg));
-      }
+      opacity: 1;
+      transform: translateY(0) rotate(var(--rotation, 0deg));
     }
 
     .evidence-card:hover {
@@ -231,9 +223,22 @@
     }
 
     .evidence-card.filtered-out {
-      opacity: 0.1;
-      transform: scale(0.95) !important;
+      opacity: 0.06;
+      transform: scale(0.92) !important;
       pointer-events: none;
+      filter: grayscale(1) blur(1px);
+      transition: all 0.4s ease;
+    }
+
+    .evidence-card.tag-match {
+      box-shadow:
+        0 0 15px rgba(212, 175, 55, 0.5),
+        0 0 40px rgba(212, 175, 55, 0.2),
+        4px 6px 12px rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(212, 175, 55, 0.6);
+      transform: scale(1.03) rotate(0deg) !important;
+      z-index: 10;
+      transition: all 0.4s ease;
     }
 
     .evidence-card.highlight-glow {
@@ -530,12 +535,8 @@
       }
 
       .evidence-card.visible {
-        animation: card-appear-mobile 0.5s ease forwards;
-      }
-
-      @keyframes card-appear-mobile {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+        opacity: 1;
+        transform: translateY(0);
       }
 
       .red-strings {
@@ -720,7 +721,7 @@
           article.dataset.tags = tagNames;
           article.style.setProperty('--rotation', `${rotation}deg`);
           article.style.transform = `rotate(${rotation}deg)`;
-          article.style.animationDelay = `${cardIndex * 0.08}s`;
+          article.style.transitionDelay = `${cardIndex * 0.08}s`;
 
           // Pin
           const pin = document.createElement('div');
@@ -1061,6 +1062,7 @@
         if (activeTagFilter === tagName) {
           activeTagFilter = null;
           document.querySelectorAll('.tag-pill.active-filter').forEach(p => p.classList.remove('active-filter'));
+          allCards.forEach(c => c.classList.remove('tag-match'));
         } else {
           activeTagFilter = tagName;
           document.querySelectorAll('.tag-pill.active-filter').forEach(p => p.classList.remove('active-filter'));
@@ -1080,8 +1082,10 @@
 
           if (matchesText && matchesTag) {
             card.classList.remove('filtered-out');
+            card.classList.toggle('tag-match', !!tagFilter);
           } else {
             card.classList.add('filtered-out');
+            card.classList.remove('tag-match');
           }
         }
 
