@@ -59,8 +59,12 @@ async function run() {
       const glimpse = await generateGlimpse();
       const { generateVoiceNote } = await import("./voice.js");
       const { sendVoiceNote, sendTextMessage } = await import("./telegram.js");
+      const { updateGlimpseVoiceUrl } = await import("./glimpses.js");
       try {
-        const { localPath } = await generateVoiceNote(glimpse.text);
+        const { localPath, publicUrl } = await generateVoiceNote(glimpse.text);
+        if (publicUrl && glimpse.id) {
+          await updateGlimpseVoiceUrl(glimpse.id, publicUrl);
+        }
         await sendVoiceNote(localPath);
       } catch (err) {
         console.error("Voice failed, sending text:", err.message);

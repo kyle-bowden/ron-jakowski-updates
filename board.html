@@ -507,6 +507,116 @@
       text-transform: uppercase;
     }
 
+    /* Glimpse sticky notes */
+    .glimpse-cluster {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      align-self: flex-end;
+      max-width: 220px;
+      margin-left: auto;
+    }
+
+    .glimpse-note {
+      position: relative;
+      background: linear-gradient(135deg, #f5e6a3, #e8d48b);
+      color: #3a3520;
+      padding: 1rem 1rem 0.8rem;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      box-shadow:
+        2px 3px 6px rgba(0, 0, 0, 0.3),
+        0 1px 2px rgba(0, 0, 0, 0.15);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      opacity: 0;
+      transform: translateY(10px) rotate(var(--rotation, 1deg));
+      font-family: 'Courier New', monospace;
+    }
+
+    .glimpse-note.visible {
+      opacity: 1;
+      transform: translateY(0) rotate(var(--rotation, 1deg));
+    }
+
+    .glimpse-note:hover {
+      transform: scale(1.05) rotate(0deg) !important;
+      box-shadow:
+        3px 5px 12px rgba(0, 0, 0, 0.4),
+        0 2px 6px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+    }
+
+    .glimpse-category {
+      font-size: 0.55rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #8b7a3a;
+      margin-bottom: 0.4rem;
+      font-weight: bold;
+    }
+
+    .glimpse-text {
+      font-style: italic;
+    }
+
+    .glimpse-note .card-audio {
+      margin-top: 0.6rem;
+      margin-bottom: 0;
+      background: rgba(0, 0, 0, 0.06);
+      border-color: rgba(139, 122, 58, 0.3);
+    }
+
+    .glimpse-note .audio-label {
+      color: #8b7a3a;
+    }
+
+    .glimpse-note .play-btn {
+      width: 32px;
+      height: 32px;
+      font-size: 0.7rem;
+      background: #b8a44a;
+      box-shadow: 0 2px 4px rgba(139, 122, 58, 0.3);
+    }
+
+    .glimpse-note .play-btn:hover {
+      background: #a89440;
+    }
+
+    .glimpse-note .progress-fill {
+      background: #b8a44a;
+    }
+
+    .glimpse-note .duration {
+      color: #8b7a3a;
+    }
+
+    /* Evidence cards grid — accommodate glimpse cluster */
+    .evidence-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+
+    .evidence-cards:has(.glimpse-cluster) {
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) auto;
+    }
+
+    @media (max-width: 768px) {
+      .glimpse-cluster {
+        max-width: 100%;
+        margin-left: 0;
+        align-self: stretch;
+      }
+
+      .glimpse-note {
+        transform: translateY(10px) rotate(0deg);
+      }
+
+      .glimpse-note.visible {
+        transform: translateY(0) rotate(0deg);
+      }
+    }
+
     /* Load more button */
     .load-more {
       display: block;
@@ -707,10 +817,10 @@
         } catch { return null; }
       }
 
-      function setCacheStories(stories, offset, hasMore) {
+      function setCacheStories(stories, offset, hasMore, glimpses) {
         try {
           sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-            stories, offset, hasMore, timestamp: Date.now()
+            stories, offset, hasMore, glimpses, timestamp: Date.now()
           }));
         } catch { /* storage full, ignore */ }
       }
@@ -731,23 +841,39 @@
         return data || [];
       }
 
+      async function fetchGlimpses() {
+        const { data, error } = await supabaseClient
+          .from('glimpses')
+          .select('id, category, text, voice_url, generated_at')
+          .order('generated_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+      }
+
       // ── Initial load (cache or fetch) ──
       let stories = [];
+      let glimpses = [];
       let currentOffset = 0;
       let hasMore = true;
 
       try {
         const cached = getCachedStories();
-        if (cached) {
+        if (cached && cached.glimpses) {
           stories = cached.stories;
+          glimpses = cached.glimpses;
           currentOffset = cached.offset;
           hasMore = cached.hasMore;
         } else {
-          const data = await fetchStories(0, PAGE_SIZE);
-          stories = data;
-          currentOffset = data.length;
-          hasMore = data.length === PAGE_SIZE;
-          setCacheStories(stories, currentOffset, hasMore);
+          const [storyData, glimpseData] = await Promise.all([
+            fetchStories(0, PAGE_SIZE),
+            fetchGlimpses()
+          ]);
+          stories = storyData;
+          glimpses = glimpseData;
+          currentOffset = storyData.length;
+          hasMore = storyData.length === PAGE_SIZE;
+          setCacheStories(stories, currentOffset, hasMore, glimpses);
         }
       } catch (err) {
         console.error('Supabase fetch error:', err);
@@ -1004,6 +1130,116 @@
         return newCards;
       }
 
+      // ── Render glimpses as sticky notes ──
+      function renderGlimpses(glimpsesToRender) {
+        const groups = new Map();
+        for (const g of glimpsesToRender) {
+          const dateKey = new Date(g.generated_at).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+          });
+          if (!groups.has(dateKey)) groups.set(dateKey, []);
+          groups.get(dateKey).push(g);
+        }
+
+        for (const [dateLabel, dayGlimpses] of groups) {
+          let groupEl = corkBoard.querySelector(`.day-group[data-date="${dateLabel}"]`);
+          let cardsContainer;
+
+          if (groupEl) {
+            cardsContainer = groupEl.querySelector('.evidence-cards');
+          } else {
+            groupEl = document.createElement('div');
+            groupEl.className = 'day-group';
+            groupEl.dataset.date = dateLabel;
+
+            const label = document.createElement('h3');
+            label.className = 'day-label';
+            label.textContent = dateLabel.toUpperCase();
+            groupEl.appendChild(label);
+
+            cardsContainer = document.createElement('div');
+            cardsContainer.className = 'evidence-cards';
+            groupEl.appendChild(cardsContainer);
+
+            const loadMoreBtn = corkBoard.querySelector('.load-more');
+            if (loadMoreBtn) {
+              corkBoard.insertBefore(groupEl, loadMoreBtn);
+            } else {
+              corkBoard.appendChild(groupEl);
+            }
+          }
+
+          // Check if cluster already exists for this day
+          let cluster = cardsContainer.querySelector('.glimpse-cluster');
+          if (!cluster) {
+            cluster = document.createElement('div');
+            cluster.className = 'glimpse-cluster';
+            cardsContainer.appendChild(cluster);
+          }
+
+          for (const glimpse of dayGlimpses) {
+            const rotation = (Math.random() * 6 - 3).toFixed(2);
+            const note = document.createElement('div');
+            note.className = 'glimpse-note';
+            note.style.setProperty('--rotation', `${rotation}deg`);
+            note.style.transitionDelay = `${cardIndex * 0.08}s`;
+
+            const cat = document.createElement('div');
+            cat.className = 'glimpse-category';
+            cat.textContent = glimpse.category;
+            note.appendChild(cat);
+
+            const text = document.createElement('div');
+            text.className = 'glimpse-text';
+            // Strip performance cues for display
+            text.textContent = (glimpse.text || '').replace(/\[.*?\]/g, '').trim();
+            note.appendChild(text);
+
+            // Voice player
+            if (glimpse.voice_url) {
+              const audioContainer = document.createElement('div');
+              audioContainer.className = 'card-audio';
+
+              const playBtn = document.createElement('button');
+              playBtn.className = 'play-btn';
+              playBtn.setAttribute('aria-label', 'Play glimpse');
+              playBtn.innerHTML = '&#9654;';
+
+              const audioDetails = document.createElement('div');
+              audioDetails.className = 'audio-details';
+
+              const audioLabel = document.createElement('div');
+              audioLabel.className = 'audio-label';
+              audioLabel.textContent = "Cal's thought";
+
+              const progressBar = document.createElement('div');
+              progressBar.className = 'progress-bar';
+              const progressFill = document.createElement('div');
+              progressFill.className = 'progress-fill';
+              progressBar.appendChild(progressFill);
+
+              audioDetails.appendChild(audioLabel);
+              audioDetails.appendChild(progressBar);
+
+              const durationSpan = document.createElement('span');
+              durationSpan.className = 'duration';
+              durationSpan.textContent = '0:00';
+
+              audioContainer.appendChild(playBtn);
+              audioContainer.appendChild(audioDetails);
+              audioContainer.appendChild(durationSpan);
+              note.appendChild(audioContainer);
+
+              setupAudioPlayer(playBtn, progressBar, progressFill, durationSpan, glimpse.voice_url, `glimpse-${glimpse.id}`);
+            }
+
+            cluster.appendChild(note);
+            observer.observe(note);
+            cardIndex++;
+          }
+        }
+      }
+
       // ── IntersectionObserver for stagger reveal ──
       const observer = new IntersectionObserver((entries) => {
         for (const entry of entries) {
@@ -1016,6 +1252,7 @@
 
       // ── Initial render ──
       renderStories(stories);
+      if (glimpses.length) renderGlimpses(glimpses);
 
       // ── Load more button ──
       if (hasMore) {
@@ -1074,7 +1311,7 @@
           // Lazy-load audio element
           if (!audio) {
             audio = new Audio(url);
-            audioPlayers.set(storyId, audio);
+            audioPlayers.set(storyId, { audio, playBtn });
 
             audio.addEventListener('loadedmetadata', () => {
               durationSpan.textContent = formatTime(audio.duration);
@@ -1100,11 +1337,10 @@
             playBtn.innerHTML = '&#9654;';
           } else {
             // Pause any other playing audio
-            for (const [id, otherAudio] of audioPlayers) {
-              if (id !== storyId && !otherAudio.paused) {
-                otherAudio.pause();
-                const otherBtn = document.querySelector(`#story-${id} .play-btn`);
-                if (otherBtn) otherBtn.innerHTML = '&#9654;';
+            for (const [id, other] of audioPlayers) {
+              if (id !== storyId && !other.audio.paused) {
+                other.audio.pause();
+                other.playBtn.innerHTML = '&#9654;';
               }
             }
             audio.play();

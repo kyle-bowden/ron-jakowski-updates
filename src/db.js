@@ -48,7 +48,8 @@ export async function initDb() {
       text TEXT NOT NULL,
       generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       sent BOOLEAN NOT NULL DEFAULT FALSE,
-      sent_at TIMESTAMPTZ
+      sent_at TIMESTAMPTZ,
+      voice_url TEXT
     );
 
     CREATE TABLE IF NOT EXISTS tags (

@@ -11,7 +11,7 @@ import {
 import { tagStories } from "./tagger.js";
 import { generateVoiceNote } from "./voice.js";
 import { sendSequence, sendTextMessage, sendVoiceNote } from "./telegram.js";
-import { generateGlimpse } from "./glimpses.js";
+import { generateGlimpse, updateGlimpseVoiceUrl } from "./glimpses.js";
 
 function pickRandom(stories) {
   return stories[Math.floor(Math.random() * stories.length)];
@@ -299,6 +299,9 @@ async function dispatchGlimpse() {
     try {
       const voiceResult = await generateVoiceNote(glimpse.text);
       voicePath = voiceResult.localPath;
+      if (voiceResult.publicUrl && glimpse.id) {
+        await updateGlimpseVoiceUrl(glimpse.id, voiceResult.publicUrl);
+      }
       console.log(`Glimpse voice generated: ${voicePath}`);
     } catch (err) {
       console.error("Glimpse voice generation failed, sending text only:", err.message);

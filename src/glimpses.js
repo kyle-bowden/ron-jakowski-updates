@@ -42,11 +42,16 @@ async function loadRecentGlimpses(limit = 30) {
 }
 
 async function saveGlimpse(glimpse) {
-  await pool.query(
+  const { rows } = await pool.query(
     `INSERT INTO glimpses (category, text, generated_at, sent, sent_at)
-     VALUES ($1, $2, $3, $4, $5)`,
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
     [glimpse.category, glimpse.text, glimpse.generatedAt, glimpse.sent, glimpse.sentAt]
   );
+  return rows[0].id;
+}
+
+export async function updateGlimpseVoiceUrl(glimpseId, url) {
+  await pool.query(`UPDATE glimpses SET voice_url = $1 WHERE id = $2`, [url, glimpseId]);
 }
 
 function buildAvoidanceContext(pastGlimpses) {
@@ -89,7 +94,8 @@ export async function generateGlimpse() {
     sentAt: null,
   };
 
-  await saveGlimpse(glimpse);
+  const id = await saveGlimpse(glimpse);
+  glimpse.id = id;
   console.log(`Glimpse generated [${glimpse.category}]: ${glimpse.text}`);
   return glimpse;
 }
