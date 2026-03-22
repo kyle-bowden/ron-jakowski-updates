@@ -161,24 +161,41 @@
       align-items: center;
       gap: 0.5rem;
       opacity: 0;
-      animation: indicator-in 1s ease-out 4s forwards;
+      animation: indicator-glitch-in 2s steps(1) 4s both;
       cursor: pointer;
       z-index: 3;
       text-decoration: none;
       transition: opacity 0.3s ease;
     }
 
-    @keyframes indicator-in {
-      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    @keyframes indicator-glitch-in {
+      0%   { opacity: 0; transform: translateX(-50%); }
+      5%   { opacity: 0.7; transform: translateX(calc(-50% - 4px)); filter: hue-rotate(90deg); clip-path: inset(20% 0 30% 0); }
+      8%   { opacity: 0; transform: translateX(-50%); }
+      15%  { opacity: 0.5; transform: translateX(calc(-50% + 3px)); filter: hue-rotate(-60deg); clip-path: inset(50% 0 10% 0); }
+      18%  { opacity: 0; }
+      28%  { opacity: 0.8; transform: translateX(calc(-50% - 2px)); filter: hue-rotate(45deg); clip-path: inset(10% 0 40% 0); }
+      31%  { opacity: 0; }
+      42%  { opacity: 0.6; transform: translateX(calc(-50% + 5px)); filter: hue-rotate(-30deg); clip-path: inset(40% 0 20% 0); }
+      45%  { opacity: 0; }
+      55%  { opacity: 0.9; transform: translateX(calc(-50% - 1px)); filter: hue-rotate(15deg); clip-path: inset(5% 0 5% 0); }
+      58%  { opacity: 0; }
+      68%  { opacity: 0.85; transform: translateX(calc(-50% + 2px)); clip-path: inset(0 0 30% 0); }
+      72%  { opacity: 1; transform: translateX(calc(-50% - 1px)); clip-path: inset(0); }
+      76%  { opacity: 0.9; transform: translateX(calc(-50% + 1px)); clip-path: inset(15% 0 0 0); }
+      82%  { opacity: 1; transform: translateX(-50%); filter: none; clip-path: none; }
+      88%  { opacity: 0.95; transform: translateX(calc(-50% - 1px)); }
+      100% { opacity: 1; transform: translateX(-50%); clip-path: none; filter: none; }
     }
 
     .scroll-indicator span {
-      color: rgba(212, 175, 55, 0.5);
+      color: rgba(212, 175, 55, 0.8);
       font-family: 'Courier New', monospace;
-      font-size: 0.6rem;
+      font-size: 0.85rem;
+      font-weight: bold;
       letter-spacing: 0.3em;
       text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
     }
 
     .scroll-chevron-wrapper {

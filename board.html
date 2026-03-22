@@ -136,6 +136,12 @@
       caret-color: #d4af37;
     }
 
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
     .search-box input::placeholder {
       color: rgba(192, 192, 192, 0.3);
     }
@@ -432,6 +438,52 @@
       flex-shrink: 0;
     }
 
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .volume-icon {
+      font-size: 0.9rem;
+      color: #d4af37;
+      cursor: pointer;
+      user-select: none;
+      line-height: 1;
+    }
+
+    .volume-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 70px;
+      height: 4px;
+      background: rgba(212, 175, 55, 0.2);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #d4af37;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .volume-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #d4af37;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
     /* Card footer */
     .card-footer {
       display: flex;
@@ -705,9 +757,15 @@
   <header class="board-header">
     <a href="index.html" class="back-link">&larr; BACK</a>
     <h1>THE EVIDENCE BOARD</h1>
-    <div class="search-box">
-      <span class="search-prompt">&gt; search: </span>
-      <input type="text" id="searchInput" placeholder="type to filter...">
+    <div class="header-controls">
+      <div class="volume-control">
+        <span class="volume-icon" id="volumeIcon">&#128266;</span>
+        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="1">
+      </div>
+      <div class="search-box">
+        <span class="search-prompt">&gt; search: </span>
+        <input type="text" id="searchInput" placeholder="type to filter...">
+      </div>
     </div>
   </header>
 
@@ -1298,6 +1356,62 @@
       }
 
       // ── Audio player setup ──
+      // ── Global volume control ──
+      const globalVolSlider = document.getElementById('volumeSlider');
+      const globalVolIcon = document.getElementById('volumeIcon');
+      const savedVol = parseFloat(localStorage.getItem('evidence_board_volume') ?? '0.5');
+      globalVolSlider.value = savedVol;
+      let globalMuted = savedVol === 0;
+      let globalPrevVol = savedVol || 1;
+
+      function getGlobalVolume() {
+        return parseFloat(globalVolSlider.value);
+      }
+
+      function persistVolume(vol) {
+        try { localStorage.setItem('evidence_board_volume', vol); } catch {}
+      }
+
+      updateGlobalVolIcon(savedVol);
+
+      function updateGlobalVolIcon(vol) {
+        if (vol === 0) globalVolIcon.innerHTML = '&#128263;';
+        else if (vol < 0.5) globalVolIcon.innerHTML = '&#128265;';
+        else globalVolIcon.innerHTML = '&#128266;';
+      }
+
+      globalVolSlider.addEventListener('input', () => {
+        const vol = getGlobalVolume();
+        globalMuted = vol === 0;
+        updateGlobalVolIcon(vol);
+        persistVolume(vol);
+        for (const [, { audio }] of audioPlayers) {
+          if (audio) audio.volume = vol;
+        }
+      });
+
+      globalVolIcon.addEventListener('click', () => {
+        if (globalMuted) {
+          const restore = globalPrevVol || 1;
+          globalVolSlider.value = restore;
+          globalMuted = false;
+          updateGlobalVolIcon(restore);
+          persistVolume(restore);
+          for (const [, { audio }] of audioPlayers) {
+            if (audio) audio.volume = restore;
+          }
+        } else {
+          globalPrevVol = getGlobalVolume();
+          globalVolSlider.value = 0;
+          globalMuted = true;
+          updateGlobalVolIcon(0);
+          persistVolume(0);
+          for (const [, { audio }] of audioPlayers) {
+            if (audio) audio.volume = 0;
+          }
+        }
+      });
+
       function setupAudioPlayer(playBtn, progressBar, progressFill, durationSpan, url, storyId) {
         let audio = null;
 
@@ -1311,6 +1425,7 @@
           // Lazy-load audio element
           if (!audio) {
             audio = new Audio(url);
+            audio.volume = getGlobalVolume();
             audioPlayers.set(storyId, { audio, playBtn });
 
             audio.addEventListener('loadedmetadata', () => {
