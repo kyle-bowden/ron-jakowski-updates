@@ -8,7 +8,8 @@ import {
   markEntrySent,
 } from "./store.js";
 import { generateVoiceNote } from "./voice.js";
-import { sendSequence, sendTextMessage } from "./telegram.js";
+import { sendSequence, sendTextMessage, sendVoiceNote } from "./telegram.js";
+import { generateGlimpse } from "./glimpses.js";
 
 function pickRandom(stories) {
   return stories[Math.floor(Math.random() * stories.length)];
@@ -224,6 +225,53 @@ export async function runPipeline() {
     if (voicePath) {
       await unlink(voicePath).catch(() => {});
     }
+  }
+}
+
+export function scheduleGlimpses() {
+  const count = Math.random() < 0.5 ? 1 : 2;
+  const times = generateSendTimes(count, 9, 21);
+
+  if (times.length === 0) {
+    console.log("No valid glimpse times remaining today.");
+    return;
+  }
+
+  console.log(`\nScheduling ${times.length} Cal glimpse(s):`);
+
+  for (const time of times) {
+    const delay = time.getTime() - Date.now();
+    if (delay <= 0) {
+      dispatchGlimpse();
+    } else {
+      console.log(`  Glimpse at ${time.toLocaleTimeString()} (in ${Math.round(delay / 60000)} min)`);
+      setTimeout(dispatchGlimpse, delay);
+    }
+  }
+}
+
+async function dispatchGlimpse() {
+  try {
+    console.log(`\n[${new Date().toISOString()}] Sending Cal glimpse...`);
+    const glimpse = await generateGlimpse();
+
+    let voicePath = null;
+    try {
+      voicePath = await generateVoiceNote(glimpse.text);
+      console.log(`Glimpse voice generated: ${voicePath}`);
+    } catch (err) {
+      console.error("Glimpse voice generation failed, sending text only:", err.message);
+    }
+
+    if (voicePath) {
+      await sendVoiceNote(voicePath);
+    } else {
+      await sendTextMessage(glimpse.text);
+    }
+
+    console.log(`Glimpse sent: ${glimpse.text}`);
+  } catch (err) {
+    console.error("Glimpse failed:", err.message);
   }
 }
 
