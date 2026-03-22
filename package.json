@@ -8,10 +8,12 @@
   },
   "dependencies": {
     "@mendable/firecrawl-js": "latest",
+    "@supabase/supabase-js": "^2",
     "dotenv": "^16.4.7",
     "elevenlabs": "latest",
     "node-cron": "^3.0.3",
     "openai": "^6.32.0",
+    "pg": "^8.20.0",
     "zod": "^3.24.0"
   }
 }

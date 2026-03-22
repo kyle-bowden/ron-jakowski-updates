@@ -16,8 +16,8 @@
     body {
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
       background: url('res/images/background-web-v2.jpg') no-repeat center center;
       background-size: cover;
       background-attachment: scroll;
@@ -40,6 +40,11 @@
       padding: 2rem;
       animation: fade-up 1.5s ease-out both;
       animation-delay: 0.3s;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
     @keyframes fade-up {
@@ -143,6 +148,60 @@
     .cta:hover::before,
     .cta:hover::after {
       opacity: 1;
+    }
+
+    /* Scroll indicator */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      opacity: 0;
+      animation: indicator-in 1s ease-out 4s forwards;
+      cursor: pointer;
+      z-index: 3;
+      text-decoration: none;
+      transition: opacity 0.3s ease;
+    }
+
+    @keyframes indicator-in {
+      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    .scroll-indicator span {
+      color: rgba(212, 175, 55, 0.5);
+      font-family: 'Courier New', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+    }
+
+    .scroll-chevron-wrapper {
+      animation: scroll-bounce 2s ease-in-out infinite;
+    }
+
+    .scroll-chevron {
+      width: 24px;
+      height: 24px;
+      border-right: 2px solid rgba(212, 175, 55, 0.5);
+      border-bottom: 2px solid rgba(212, 175, 55, 0.5);
+      transform: rotate(45deg);
+    }
+
+    @keyframes scroll-bounce {
+      0%, 100% { transform: translateY(0); opacity: 0.5; }
+      50% { transform: translateY(6px); opacity: 1; }
+    }
+
+    .scroll-indicator:hover span,
+    .scroll-indicator:hover .scroll-chevron {
+      color: rgba(212, 175, 55, 0.8);
+      border-color: rgba(212, 175, 55, 0.8);
     }
 
     /* Particle network canvas */
@@ -304,6 +363,135 @@
         rgba(0, 0, 0, 0.08) 4px
       );
     }
+
+    .evidence-preview {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 900px;
+      padding: 3rem 2rem;
+      margin: 0 auto;
+      animation: fade-up 1s ease-out both;
+    }
+
+    .evidence-title {
+      text-align: center;
+      color: #d4af37;
+      font-family: 'Courier New', monospace;
+      font-size: clamp(0.8rem, 2vw, 1rem);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+
+    .evidence-title.visible {
+      opacity: 1;
+    }
+
+    .evidence-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .evidence-card {
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(212, 175, 55, 0.15);
+      border-left: 3px solid rgba(212, 175, 55, 0.4);
+      padding: 1.2rem 1.5rem;
+      border-radius: 2px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+      color: inherit;
+    }
+
+    .evidence-card.visible {
+      opacity: 1;
+      transform: translateY(0) rotate(var(--rotation, 0deg));
+    }
+
+    .evidence-card:hover {
+      border-color: rgba(212, 175, 55, 0.4);
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+      transform: translateY(-2px) rotate(0deg);
+    }
+
+    .evidence-card h3 {
+      color: #d4af37;
+      font-size: 0.85rem;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 0.5rem;
+      line-height: 1.4;
+      text-transform: uppercase;
+    }
+
+    .evidence-card p {
+      color: #888;
+      font-size: 0.75rem;
+      font-family: 'Courier New', monospace;
+      line-height: 1.5;
+    }
+
+    .evidence-card .card-date {
+      color: #555;
+      font-size: 0.65rem;
+      font-family: 'Courier New', monospace;
+      margin-top: 0.8rem;
+      letter-spacing: 0.1em;
+    }
+
+    .evidence-card .voice-indicator {
+      display: inline-block;
+      color: #d4af37;
+      font-size: 0.65rem;
+      margin-top: 0.5rem;
+      opacity: 0.6;
+    }
+
+    .see-more {
+      display: block;
+      text-align: center;
+      color: #d4af37;
+      font-family: 'Courier New', monospace;
+      font-size: clamp(0.8rem, 2vw, 0.95rem);
+      text-decoration: none;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 1rem;
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      background: rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      opacity: 0;
+      transition: opacity 0.8s ease, background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .see-more.visible {
+      opacity: 1;
+    }
+
+    .see-more:hover {
+      background: rgba(212, 175, 55, 0.1);
+      border-color: rgba(212, 175, 55, 0.5);
+    }
+
+    @media (max-width: 768px) {
+      .evidence-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .evidence-preview {
+        padding: 2rem 1.5rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -312,7 +500,19 @@
   <div class="container">
     <p class="manifesto" id="manifesto"><span class="cursor"></span></p>
     <a href="https://t.me/ronjakowski" class="cta" target="_blank" rel="noopener">Enter the Protocol</a>
+    <a href="#evidencePreview" class="scroll-indicator" id="scrollIndicator">
+      <span>intercepted files below</span>
+      <div class="scroll-chevron-wrapper"><div class="scroll-chevron"></div></div>
+    </a>
   </div>
+
+  <section class="evidence-preview" id="evidencePreview">
+    <h2 class="evidence-title" id="evidenceTitle">INTERCEPTED TRANSMISSIONS</h2>
+    <div class="evidence-cards" id="evidenceCards">
+      <!-- Populated by JS -->
+    </div>
+    <a href="board.html" class="see-more" id="seeMore">See more truth &rarr;</a>
+  </section>
 
   <!-- Hidden: ghost text links -->
   <a href="autobiography.html" class="ghost-link ghost-1">who is cal?</a>
@@ -425,6 +625,104 @@
         keys = '';
       }
     });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="res/js/supabase-config.js"></script>
+  <script>
+    // Hide scroll indicator on scroll
+    (() => {
+      const indicator = document.getElementById('scrollIndicator');
+      if (!indicator) return;
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 100) {
+          indicator.style.opacity = '0';
+          indicator.style.pointerEvents = 'none';
+        }
+      }, { passive: true });
+    })();
+
+    // Fetch and render evidence preview cards
+    (async () => {
+      try {
+        const sb = window.supabase.createClient(
+          window.SUPABASE_CONFIG.url,
+          window.SUPABASE_CONFIG.anonKey
+        );
+
+        const { data: stories, error } = await sb
+          .from('stories')
+          .select('id, post_title, content_summary, voice_url, created_at')
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (error || !stories || stories.length === 0) return;
+
+        const container = document.getElementById('evidenceCards');
+
+        stories.forEach((story, i) => {
+          const card = document.createElement('a');
+          card.href = `board.html#story-${story.id}`;
+          card.className = 'evidence-card';
+          card.style.setProperty('--rotation', `${-1.5 + Math.random() * 3}deg`);
+
+          const title = story.post_title.length > 80
+            ? story.post_title.slice(0, 80) + '...'
+            : story.post_title;
+          const summary = story.content_summary.length > 120
+            ? story.content_summary.slice(0, 120) + '...'
+            : story.content_summary;
+          const date = new Date(story.created_at).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+          });
+
+          const h3 = document.createElement('h3');
+          h3.textContent = title;
+          card.appendChild(h3);
+
+          const p = document.createElement('p');
+          p.textContent = summary;
+          card.appendChild(p);
+
+          if (story.voice_url) {
+            const voice = document.createElement('span');
+            voice.className = 'voice-indicator';
+            voice.innerHTML = '&#9654; VOICE NOTE AVAILABLE';
+            card.appendChild(voice);
+          }
+
+          const dateDiv = document.createElement('div');
+          dateDiv.className = 'card-date';
+          dateDiv.textContent = date;
+          card.appendChild(dateDiv);
+
+          container.appendChild(card);
+        });
+
+        // Intersection Observer for fade-in
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const el = entry.target;
+              if (el.id === 'evidenceTitle' || el.id === 'seeMore') {
+                el.classList.add('visible');
+              } else if (el.classList.contains('evidence-card')) {
+                setTimeout(() => el.classList.add('visible'),
+                  Array.from(el.parentNode.children).indexOf(el) * 150);
+              }
+              observer.unobserve(el);
+            }
+          });
+        }, { threshold: 0.1 });
+
+        document.getElementById('evidenceTitle') && observer.observe(document.getElementById('evidenceTitle'));
+        document.querySelectorAll('.evidence-card').forEach(c => observer.observe(c));
+        document.getElementById('seeMore') && observer.observe(document.getElementById('seeMore'));
+
+      } catch (e) {
+        console.error('Failed to load evidence:', e);
+      }
+    })();
   </script>
 </body>
 </html>

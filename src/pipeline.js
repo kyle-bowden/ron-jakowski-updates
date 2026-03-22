@@ -6,7 +6,9 @@ import {
   getTodaySchedule,
   createTodaySchedule,
   markEntrySent,
+  updateStoryVoiceUrl,
 } from "./store.js";
+import { tagStories } from "./tagger.js";
 import { generateVoiceNote } from "./voice.js";
 import { sendSequence, sendTextMessage, sendVoiceNote } from "./telegram.js";
 import { generateGlimpse } from "./glimpses.js";
@@ -30,12 +32,30 @@ function randomTimeBetween(startHour, endHour) {
   return new Date(startMs + Math.random() * (endMs - startMs));
 }
 
-function generateSendTimes(count, startHour = 7, endHour = 22) {
+function generateSendTimes(count, startHour = 7, endHour = 24) {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(startHour, 0, 0, 0);
+  const end = new Date(now);
+  end.setHours(endHour, 0, 0, 0);
+
+  const startMs = Math.max(start.getTime(), now.getTime());
+  const endMs = end.getTime();
+  if (startMs >= endMs || count <= 0) return [];
+
+  // Divide the remaining window into equal slots, then jitter within each
+  const slotSize = (endMs - startMs) / count;
   const times = [];
+
   for (let i = 0; i < count; i++) {
-    const time = randomTimeBetween(startHour, endHour);
-    if (time) times.push(time);
+    const slotStart = startMs + i * slotSize;
+    const slotEnd = slotStart + slotSize;
+    // Place randomly within the middle 70% of the slot to avoid edge clustering
+    const padding = slotSize * 0.15;
+    const time = new Date(slotStart + padding + Math.random() * (slotSize - padding * 2));
+    if (time.getTime() <= endMs) times.push(time);
   }
+
   return times.sort((a, b) => a - b);
 }
 
@@ -43,16 +63,28 @@ export async function runScrape() {
   console.log("Scraping stories...");
   const stories = await scrapeStories();
   console.log(`Scraped ${stories.length} stories`);
-  const { batchId } = await saveStories(stories);
+  const { batchId, ids } = await saveStories(stories);
   console.log(`Stored batch ${batchId}`);
-  return stories;
+
+  // Attach IDs to stories for downstream use
+  const storiesWithIds = stories.map((s, i) => ({ ...s, id: ids[i], batchId }));
+
+  try {
+    await tagStories(storiesWithIds);
+    console.log("Stories tagged");
+  } catch (err) {
+    console.error("Tagging failed (non-fatal):", err.message);
+  }
+
+  return storiesWithIds;
 }
 
 export async function runVoice(story) {
   console.log(`Generating voice for: ${story.post_title}`);
-  const voicePath = await generateVoiceNote(story.persona_summary);
-  console.log(`Voice note generated: ${voicePath}`);
-  return voicePath;
+  const result = await generateVoiceNote(story.persona_summary, story.batchId);
+  console.log(`Voice note generated: ${result.localPath}`);
+  if (result.publicUrl) console.log(`Uploaded to: ${result.publicUrl}`);
+  return result;
 }
 
 export async function runSend(story, voicePath) {
@@ -90,7 +122,11 @@ async function prepareScheduleFromStories(stories) {
     const story = stories[i];
     let voicePath = null;
     try {
-      voicePath = await runVoice(story);
+      const voiceResult = await runVoice(story);
+      voicePath = voiceResult.localPath;
+      if (voiceResult.publicUrl && story.id) {
+        await updateStoryVoiceUrl(story.id, voiceResult.publicUrl);
+      }
     } catch (err) {
       console.error(`Voice generation failed for "${story.post_title}":`, err.message);
     }
@@ -214,7 +250,11 @@ export async function runPipeline() {
     console.log(`Selected: ${selected.post_title}`);
 
     try {
-      voicePath = await runVoice(selected);
+      const voiceResult = await runVoice(selected);
+      voicePath = voiceResult.localPath;
+      if (voiceResult.publicUrl && selected.id) {
+        await updateStoryVoiceUrl(selected.id, voiceResult.publicUrl);
+      }
     } catch (err) {
       console.error("Voice generation failed, sending text only:", err.message);
     }
@@ -257,7 +297,8 @@ async function dispatchGlimpse() {
 
     let voicePath = null;
     try {
-      voicePath = await generateVoiceNote(glimpse.text);
+      const voiceResult = await generateVoiceNote(glimpse.text);
+      voicePath = voiceResult.localPath;
       console.log(`Glimpse voice generated: ${voicePath}`);
     } catch (err) {
       console.error("Glimpse voice generation failed, sending text only:", err.message);
@@ -295,7 +336,8 @@ export async function runFromStored({ step, storyIndex, voiceFile }) {
 
   try {
     if (!voicePath && (step === "voice" || step === "send")) {
-      voicePath = await runVoice(selected);
+      const voiceResult = await runVoice(selected);
+      voicePath = voiceResult.localPath;
       generated = true;
     }
 

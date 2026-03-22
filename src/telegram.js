@@ -5,7 +5,7 @@ import { config } from "./config.js";
 const exec = promisify(execCb);
 const TIMEOUT = 30_000;
 
-function randomDelay(min = 2000, max = 4000) {
+function delay(min, max) {
   return new Promise((resolve) =>
     setTimeout(resolve, min + Math.random() * (max - min))
   );
@@ -30,11 +30,22 @@ export async function sendVoiceNote(filePath) {
 }
 
 export async function sendSequence(story, voicePath) {
-  for (const msg of story.text_messages) {
-    await sendTextMessage(msg);
-    await randomDelay();
+  const msgs = story.text_messages;
+
+  for (let i = 0; i < msgs.length; i++) {
+    await sendTextMessage(msgs[i]);
+
+    if (i < msgs.length - 1) {
+      // Early messages: longer gaps (building tension)
+      // Later messages: shorter gaps (getting frantic)
+      const progress = i / (msgs.length - 1);
+      const minDelay = 60_000 - progress * 45_000;   // 60s → 15s
+      const maxDelay = 180_000 - progress * 140_000;  // 180s → 40s
+      await delay(minDelay, maxDelay);
+    }
   }
 
-  await randomDelay(1000, 3000);
+  // Longer pause before the voice note — like Cal recording it
+  await delay(120_000, 300_000); // 2-5 minutes
   await sendVoiceNote(voicePath);
 }

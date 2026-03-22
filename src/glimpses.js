@@ -1,12 +1,6 @@
 import OpenAI from "openai";
-import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { pool } from "./db.js";
 import { config } from "./config.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = join(__dirname, "..", "data");
-const GLIMPSES_FILE = join(DATA_DIR, "glimpses.json");
 
 const openai = new OpenAI({ apiKey: config.openaiApiKey });
 
@@ -39,38 +33,34 @@ VARIETY CATEGORIES (rotate through these, never repeat a category back-to-back):
 - moment: a snapshot of right now — where Cal is, what he's doing
 - fear: something that keeps Cal up at night`;
 
-async function loadGlimpses() {
-  try {
-    const raw = await readFile(GLIMPSES_FILE, "utf-8");
-    return JSON.parse(raw);
-  } catch (err) {
-    if (err.code === "ENOENT") return [];
-    throw err;
-  }
+async function loadRecentGlimpses(limit = 30) {
+  const { rows } = await pool.query(
+    `SELECT category, text FROM glimpses ORDER BY generated_at DESC LIMIT $1`,
+    [limit]
+  );
+  return rows;
 }
 
 async function saveGlimpse(glimpse) {
-  await mkdir(DATA_DIR, { recursive: true });
-  const all = await loadGlimpses();
-  all.push(glimpse);
-  const tmpFile = GLIMPSES_FILE + ".tmp";
-  await writeFile(tmpFile, JSON.stringify(all, null, 2));
-  await rename(tmpFile, GLIMPSES_FILE);
+  await pool.query(
+    `INSERT INTO glimpses (category, text, generated_at, sent, sent_at)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [glimpse.category, glimpse.text, glimpse.generatedAt, glimpse.sent, glimpse.sentAt]
+  );
 }
 
 function buildAvoidanceContext(pastGlimpses) {
-  const recent = pastGlimpses.slice(-30);
-  if (recent.length === 0) return "";
+  if (pastGlimpses.length === 0) return "";
 
-  const themes = recent.map((g) => `- [${g.category}] "${g.text}"`).join("\n");
+  const themes = pastGlimpses.map((g) => `- [${g.category}] "${g.text}"`).join("\n");
   return `\nPREVIOUSLY SENT (do NOT repeat these themes, phrasings, or topics):\n${themes}\n\nGenerate something COMPLETELY DIFFERENT from all of the above.`;
 }
 
 export async function generateGlimpse() {
-  const past = await loadGlimpses();
+  const past = await loadRecentGlimpses();
   const avoidance = buildAvoidanceContext(past);
 
-  const recentCategories = past.slice(-5).map((g) => g.category);
+  const recentCategories = past.slice(0, 5).map((g) => g.category);
   const allCategories = ["memory", "habit", "observation", "reflection", "moment", "fear"];
   const available = allCategories.filter((c) => !recentCategories.includes(c));
   const suggestedCategory = available.length > 0
@@ -103,5 +93,3 @@ export async function generateGlimpse() {
   console.log(`Glimpse generated [${glimpse.category}]: ${glimpse.text}`);
   return glimpse;
 }
-
-export { loadGlimpses };

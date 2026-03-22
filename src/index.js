@@ -1,6 +1,9 @@
 import cron from "node-cron";
+import { initDb } from "./db.js";
 import { runPipeline, runDailyPipeline, runScrape, runFromStored, runFromStored_daily, scheduleGlimpses } from "./pipeline.js";
 import { generateGlimpse } from "./glimpses.js";
+
+await initDb();
 
 const args = process.argv.slice(2);
 const command = args[0];

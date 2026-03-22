@@ -1,6 +1,7 @@
 import { ElevenLabsClient } from "elevenlabs";
+import { createClient } from "@supabase/supabase-js";
 import { createWriteStream } from "node:fs";
-import { copyFile, unlink, mkdir } from "node:fs/promises";
+import { copyFile, unlink, mkdir, readFile } from "node:fs/promises";
 import { join, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
@@ -12,8 +13,9 @@ const TMP_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "tmp");
 const OPENCLAW_MEDIA_DIR = join(homedir(), ".openclaw", "media");
 
 const client = new ElevenLabsClient({ apiKey: config.elevenlabsApiKey });
+const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey);
 
-export async function generateVoiceNote(text) {
+export async function generateVoiceNote(text, batchId) {
   await mkdir(TMP_DIR, { recursive: true });
   await mkdir(OPENCLAW_MEDIA_DIR, { recursive: true });
 
@@ -40,7 +42,28 @@ export async function generateVoiceNote(text) {
     await copyFile(tmpPath, mediaPath);
     await unlink(tmpPath).catch(() => {});
 
-    return mediaPath;
+    // Upload to Supabase Storage
+    const folder = batchId || "uncategorized";
+    const storagePath = `${folder}/${filename}`;
+    const fileBuffer = await readFile(mediaPath);
+
+    const { error: uploadError } = await supabase.storage
+      .from("voice-notes")
+      .upload(storagePath, fileBuffer, {
+        contentType: "audio/ogg",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Supabase upload failed:", uploadError.message);
+      return { localPath: mediaPath, publicUrl: null };
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("voice-notes")
+      .getPublicUrl(storagePath);
+
+    return { localPath: mediaPath, publicUrl: urlData.publicUrl };
   } catch (err) {
     await unlink(tmpPath).catch(() => {});
     await unlink(mediaPath).catch(() => {});
