@@ -18,7 +18,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: url('res/images/background-web.jpg') no-repeat center center;
+      background: url('res/images/background-web-v2.jpg') no-repeat center center;
       background-size: cover;
       background-attachment: scroll;
       font-family: 'Courier New', monospace;
@@ -38,6 +38,13 @@
       z-index: 1;
       text-align: center;
       padding: 2rem;
+      animation: fade-up 1.5s ease-out both;
+      animation-delay: 0.3s;
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .manifesto {
@@ -47,6 +54,26 @@
       color: #c0c0c0;
       line-height: 1.7;
       text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 1.5rem 2rem;
+      border: 1px solid rgba(212, 175, 55, 0.08);
+      border-radius: 2px;
+    }
+
+    .manifesto .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: #d4af37;
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink 0.7s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
     }
 
     .cta {
@@ -62,12 +89,44 @@
       transition: all 0.3s ease;
       position: relative;
       background: rgba(0, 0, 0, 0.6);
+      animation: cta-glitch-in 1.5s steps(1) 0.3s both, pulse-glow 3s ease-in-out 2s infinite;
+    }
+
+    @keyframes cta-glitch-in {
+      0%   { opacity: 0; transform: translate(0, 0); filter: none; }
+      5%   { opacity: 0.7; transform: translate(-4px, 2px); filter: hue-rotate(90deg); clip-path: inset(20% 0 30% 0); }
+      8%   { opacity: 0; transform: translate(0, 0); }
+      15%  { opacity: 0.5; transform: translate(3px, -1px); filter: hue-rotate(-60deg); clip-path: inset(50% 0 10% 0); }
+      18%  { opacity: 0; }
+      25%  { opacity: 0.8; transform: translate(-2px, 3px); filter: hue-rotate(45deg); clip-path: inset(10% 0 40% 0); }
+      28%  { opacity: 0; }
+      35%  { opacity: 0.6; transform: translate(5px, -2px); filter: hue-rotate(-30deg); clip-path: inset(40% 0 20% 0); }
+      38%  { opacity: 0; }
+      48%  { opacity: 0.9; transform: translate(-1px, 1px); filter: hue-rotate(15deg); clip-path: inset(5% 0 5% 0); }
+      50%  { opacity: 0; }
+      60%  { opacity: 0.85; transform: translate(2px, -1px); filter: none; clip-path: inset(0 0 30% 0); }
+      62%  { opacity: 1; transform: translate(-1px, 0); clip-path: inset(0 0 0 0); }
+      65%  { opacity: 0.9; transform: translate(1px, 1px); clip-path: inset(15% 0 0 0); }
+      70%  { opacity: 1; transform: translate(0, 0); filter: none; clip-path: inset(0); }
+      75%  { opacity: 0.95; transform: translate(-1px, 0); }
+      80%  { opacity: 1; transform: translate(0, 0); }
+      85%  { opacity: 0.97; transform: translate(1px, 0); }
+      90%  { opacity: 1; transform: translate(0, 0); clip-path: inset(0); filter: none; }
+      100% { opacity: 1; transform: translate(0, 0); clip-path: inset(0); filter: none; }
+    }
+
+    @keyframes pulse-glow {
+      0% { opacity: 1; box-shadow: 0 0 5px rgba(212, 175, 55, 0.1); }
+      50% { opacity: 1; box-shadow: 0 0 20px rgba(212, 175, 55, 0.25), 0 0 40px rgba(212, 175, 55, 0.1); }
+      100% { opacity: 1; box-shadow: 0 0 5px rgba(212, 175, 55, 0.1); }
     }
 
     .cta:hover {
       background: #d4af37;
       color: #000;
       box-shadow: 0 0 30px rgba(212, 175, 55, 0.4), 0 0 60px rgba(212, 175, 55, 0.15);
+      animation: none;
+      opacity: 1;
     }
 
     .cta::before,
@@ -86,9 +145,17 @@
       opacity: 1;
     }
 
+    /* Particle network canvas */
+    #particles {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
     @media (max-width: 768px) {
       body {
-        background-image: url('res/images/background-mobile.jpg');
+        background-image: url('res/images/background-mobile-v2.jpg');
         min-height: 100svh;
       }
 
@@ -240,9 +307,10 @@
   </style>
 </head>
 <body>
+  <canvas id="particles"></canvas>
   <div class="scanline"></div>
   <div class="container">
-    <p class="manifesto">Listen — I don't have much time. They're watching this page RIGHT NOW. Everything they don't want you to know? The cover-ups, the deepfakes, the signals hidden in plain sight? I'm sending it all. Raw. Unfiltered. Before they shut me down. If you're seeing this... you were meant to find it.</p>
+    <p class="manifesto" id="manifesto"><span class="cursor"></span></p>
     <a href="https://t.me/ronjakowski" class="cta" target="_blank" rel="noopener">Enter the Protocol</a>
   </div>
 
@@ -260,6 +328,93 @@
   </div>
 
   <script>
+    // Typewriter effect
+    (() => {
+      const text = "Listen \u2014 I don't have much time. They're watching this page RIGHT NOW. Everything they don't want you to know? The cover-ups, the deepfakes, the signals hidden in plain sight? I'm sending it all. Raw. Unfiltered. Before they shut me down. If you're seeing this... you were meant to find it.";
+      const el = document.getElementById('manifesto');
+      const cursor = el.querySelector('.cursor');
+      let i = 0;
+
+      function type() {
+        if (i < text.length) {
+          cursor.before(document.createTextNode(text[i]));
+          i++;
+          const delay = text[i - 1] === '.' || text[i - 1] === '?' ? 180 :
+                        text[i - 1] === ',' || text[i - 1] === '\u2014' ? 120 :
+                        25 + Math.random() * 35;
+          setTimeout(type, delay);
+        } else {
+          setTimeout(() => cursor.remove(), 2000);
+        }
+      }
+
+      setTimeout(type, 800);
+    })();
+
+    // Particle network
+    (() => {
+      const canvas = document.getElementById('particles');
+      const ctx = canvas.getContext('2d');
+      let w, h, particles;
+
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+
+      function init() {
+        resize();
+        const count = Math.floor((w * h) / 25000);
+        particles = Array.from({ length: count }, () => ({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          r: Math.random() * 1.5 + 0.5,
+        }));
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+
+        for (const p of particles) {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0) p.x = w;
+          if (p.x > w) p.x = 0;
+          if (p.y < 0) p.y = h;
+          if (p.y > h) p.y = 0;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(212, 175, 55, 0.15)';
+          ctx.fill();
+        }
+
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = dx * dx + dy * dy;
+            if (dist < 15000) {
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(212, 175, 55, ${0.06 * (1 - dist / 15000)})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      window.addEventListener('resize', () => { resize(); });
+      init();
+      draw();
+    })();
+
     // Reveal secret panel by typing "ron"
     let keys = '';
     document.addEventListener('keydown', (e) => {
