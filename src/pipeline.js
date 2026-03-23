@@ -188,7 +188,7 @@ async function postToX(story) {
   }
 
   // Use first available x_post + append deeplink to evidence card
-  const deeplink = story.id ? `\n\nhttps://caljakowski.com/board.html?story=${story.id}` : "";
+  const deeplink = story.id ? `\n\nhttps://caljakowski.com/story/${story.id}` : "";
   const text = xPosts[0] + deeplink;
 
   // Check for image-like media links

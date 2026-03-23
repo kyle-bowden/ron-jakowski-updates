@@ -1,17 +1,3 @@
-const CRAWLER_AGENTS = [
-  "Twitterbot",
-  "facebookexternalhit",
-  "LinkedInBot",
-  "Slackbot",
-  "Discordbot",
-  "TelegramBot",
-];
-
-function isCrawler(userAgent) {
-  if (!userAgent) return false;
-  return CRAWLER_AGENTS.some((bot) => userAgent.includes(bot));
-}
-
 async function fetchStoryTitle(storyId, env) {
   const url = `${env.SUPABASE_URL}/rest/v1/stories?id=eq.${encodeURIComponent(storyId)}&select=post_title`;
   const res = await fetch(url, {
@@ -25,31 +11,34 @@ async function fetchStoryTitle(storyId, env) {
   return data.length > 0 ? data[0].post_title : null;
 }
 
-function buildMetaHtml(storyId, title) {
-  const pageUrl = `https://caljakowski.com/board.html?story=${storyId}`;
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function buildCardPage(storyId, title) {
+  const escaped = escapeHtml(title);
+  const boardUrl = `https://caljakowski.com/board.html?story=${storyId}`;
   const image = "https://caljakowski.com/res/images/evidence_board-web.jpg";
-  const siteName = "Evidence Board — The Reality Protocol";
-  const cardTitle = title || "Intercepted transmissions. Cal logged everything before they changed it.";
 
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta property="og:type" content="article">
-  <meta property="og:title" content="${cardTitle}">
-  <meta property="og:description" content="${siteName}">
-  <meta property="og:url" content="${pageUrl}">
+  <meta property="og:title" content="${escaped}">
+  <meta property="og:description" content="Evidence Board — The Reality Protocol">
+  <meta property="og:url" content="https://caljakowski.com/story/${storyId}">
   <meta property="og:image" content="${image}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@caljakowski">
-  <meta name="twitter:title" content="${cardTitle}">
-  <meta name="twitter:description" content="${siteName}">
+  <meta name="twitter:title" content="${escaped}">
+  <meta name="twitter:description" content="Evidence Board — The Reality Protocol">
   <meta name="twitter:image" content="${image}">
-  <meta http-equiv="refresh" content="0;url=${pageUrl}">
-  <title>${cardTitle}</title>
+  <title>${escaped}</title>
+  <script>window.location.replace("${boardUrl}");</script>
 </head>
 <body>
-  <p>Redirecting to <a href="${pageUrl}">evidence board</a>...</p>
+  <p>Redirecting to <a href="${boardUrl}">evidence board</a>...</p>
 </body>
 </html>`;
 }
@@ -57,34 +46,66 @@ function buildMetaHtml(storyId, title) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    // Handle /story/ID path — unique URL per story for X cards
+    const storyPathMatch = url.pathname.match(/^\/story\/(\d+)$/);
+    if (storyPathMatch) {
+      const storyId = storyPathMatch[1];
+      try {
+        const title = await fetchStoryTitle(storyId, env);
+        if (title) {
+          return new Response(buildCardPage(storyId, title), {
+            headers: { "Content-Type": "text/html; charset=utf-8" },
+          });
+        }
+      } catch {}
+      // Fallback: redirect to board
+      return Response.redirect(`https://caljakowski.com/board.html?story=${storyId}`, 302);
+    }
+
+    // Handle /board.html?story=ID — replace static OG tags with dynamic ones
     const storyId = url.searchParams.get("story");
-
-    // No story param — pass through to origin
-    if (!storyId) {
+    if (!storyId || !/^\d+$/.test(storyId)) {
       return fetch(request);
     }
 
-    // Not a crawler — pass through to origin
-    const userAgent = request.headers.get("User-Agent") || "";
-    if (!isCrawler(userAgent)) {
-      return fetch(request);
+    const [title, originResponse] = await Promise.all([
+      fetchStoryTitle(storyId, env).catch(() => null),
+      fetch(request),
+    ]);
+
+    if (!title) {
+      return originResponse;
     }
 
-    // Validate story ID is numeric
-    if (!/^\d+$/.test(storyId)) {
-      return fetch(request);
-    }
+    const escaped = escapeHtml(title);
+    const pageUrl = `https://caljakowski.com/board.html?story=${storyId}`;
 
-    try {
-      const title = await fetchStoryTitle(storyId, env);
-      if (!title) {
-        return fetch(request);
-      }
-      return new Response(buildMetaHtml(storyId, title), {
-        headers: { "Content-Type": "text/html;charset=UTF-8" },
-      });
-    } catch {
-      return fetch(request);
-    }
+    let html = await originResponse.text();
+    html = html.replace(
+      '<meta property="og:title" content="Evidence Board — The Reality Protocol">',
+      `<meta property="og:title" content="${escaped}">`
+    );
+    html = html.replace(
+      '<meta property="og:description" content="Intercepted transmissions. Cal logged everything before they changed it.">',
+      `<meta property="og:description" content="Evidence Board — The Reality Protocol">`
+    );
+    html = html.replace(
+      '<meta property="og:url" content="https://caljakowski.com/board.html">',
+      `<meta property="og:url" content="${pageUrl}">`
+    );
+    html = html.replace(
+      '<meta name="twitter:title" content="Evidence Board — The Reality Protocol">',
+      `<meta name="twitter:title" content="${escaped}">`
+    );
+    html = html.replace(
+      '<meta name="twitter:description" content="Intercepted transmissions. Cal logged everything before they changed it.">',
+      `<meta name="twitter:description" content="Evidence Board — The Reality Protocol">`
+    );
+
+    return new Response(html, {
+      status: 200,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
   },
 };

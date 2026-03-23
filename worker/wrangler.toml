@@ -7,6 +7,10 @@ workers_dev = false
 pattern = "caljakowski.com/board.html*"
 zone_name = "caljakowski.com"
 
+[[routes]]
+pattern = "caljakowski.com/story/*"
+zone_name = "caljakowski.com"
+
 [vars]
 SUPABASE_URL = "https://iaewobmdruabgqwmcytw.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhZXdvYm1kcnVhYmdxd21jeXR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDM4NjYsImV4cCI6MjA4OTc3OTg2Nn0.hLMBDDrrNryg3W9cdCRYm5WASfGPOOm6oN10gIwdGqQ"
