@@ -93,3 +93,70 @@ export async function postTweet(text) {
   console.log(`[X] Tweet posted: ${result.data.data.id}`);
   return result.data.data.id;
 }
+
+function downloadImage(imageUrl) {
+  return new Promise((resolve, reject) => {
+    const mod = imageUrl.startsWith("https") ? https : http;
+    mod.get(imageUrl, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return downloadImage(res.headers.location).then(resolve).catch(reject);
+      }
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        return reject(new Error(`Image download failed: ${res.statusCode}`));
+      }
+      const chunks = [];
+      res.on("data", (c) => chunks.push(c));
+      res.on("end", () => resolve(Buffer.concat(chunks)));
+      res.on("error", reject);
+    }).on("error", reject);
+  });
+}
+
+function guessMimeType(url) {
+  const ext = url.split("?")[0].split(".").pop().toLowerCase();
+  const types = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp" };
+  return types[ext] || "image/jpeg";
+}
+
+async function uploadMedia(imageBuffer) {
+  const url = "https://upload.twitter.com/1.1/media/upload.json";
+  const base64Data = imageBuffer.toString("base64");
+
+  // Do NOT pass media_data to oauthSign — multipart body params are excluded from OAuth signature
+  const auth = oauthSign("POST", url);
+
+  const boundary = "----XBoundary" + crypto.randomBytes(8).toString("hex");
+  const bodyParts = [
+    `--${boundary}\r\nContent-Disposition: form-data; name="media_data"\r\n\r\n${base64Data}\r\n`,
+    `--${boundary}--\r\n`,
+  ];
+  const body = bodyParts.join("");
+
+  return request("POST", url, {
+    Authorization: auth,
+    "Content-Type": `multipart/form-data; boundary=${boundary}`,
+    "Content-Length": Buffer.byteLength(body),
+  }, body);
+}
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
+export async function postTweetWithImage(text, imageUrl) {
+  console.log(`[X] Posting tweet with image: ${text.slice(0, 50)}...`);
+  try {
+    const imageBuffer = await downloadImage(imageUrl);
+    if (imageBuffer.length > MAX_IMAGE_SIZE) {
+      console.warn(`[X] Image too large (${(imageBuffer.length / 1024 / 1024).toFixed(1)}MB), posting text only`);
+      return postTweet(text);
+    }
+    const uploadResult = await uploadMedia(imageBuffer);
+    const mediaId = uploadResult.data.media_id_string;
+    console.log(`[X] Media uploaded: ${mediaId}`);
+    const result = await createTweet(text, [mediaId]);
+    console.log(`[X] Tweet with image posted: ${result.data.data.id}`);
+    return result.data.data.id;
+  } catch (err) {
+    console.error(`[X] Image upload failed, falling back to text: ${err.message}`);
+    return postTweet(text);
+  }
+}
