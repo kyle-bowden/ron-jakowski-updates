@@ -286,9 +286,28 @@ export async function runPipeline() {
   }
 }
 
+const MIN_GLIMPSE_GAP = 2 * 60 * 60 * 1000; // 2 hours minimum between glimpses
+
 export function scheduleGlimpses() {
   const count = Math.random() < 0.5 ? 1 : 2;
-  const times = generateSendTimes(count, 9, 21);
+  let times = generateSendTimes(count, 9, 21);
+
+  if (times.length === 0) {
+    console.log("No valid glimpse times remaining today.");
+    return;
+  }
+
+  // Enforce minimum gap between glimpses
+  if (times.length > 1) {
+    for (let i = 1; i < times.length; i++) {
+      const gap = times[i].getTime() - times[i - 1].getTime();
+      if (gap < MIN_GLIMPSE_GAP) {
+        times[i] = new Date(times[i - 1].getTime() + MIN_GLIMPSE_GAP);
+      }
+    }
+    // Drop any that got pushed past the 9pm window
+    times = times.filter((t) => t.getHours() < 21);
+  }
 
   if (times.length === 0) {
     console.log("No valid glimpse times remaining today.");
