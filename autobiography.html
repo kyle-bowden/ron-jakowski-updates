@@ -6,18 +6,15 @@
   <title>Cal Jakowski — If You're Reading This, You Found It</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="icon" href="res/images/favicon.png" type="image/png">
+  <link rel="stylesheet" href="res/css/base.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    .scanline { --scanline-z: 999; --scanline-opacity: 0.06; }
 
     body {
       min-height: 100vh;
-      background: #0a0a0a;
+      background: var(--bg);
       color: #b0b0b0;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       padding: 2rem;
       line-height: 1.8;
     }
@@ -35,7 +32,7 @@
 
     .header h1 {
       font-size: 1.4rem;
-      color: #d4af37;
+      color: var(--gold);
       text-transform: uppercase;
       letter-spacing: 0.15em;
       margin-bottom: 0.5rem;
@@ -75,11 +72,11 @@
 
     .redacted:hover {
       background: transparent;
-      color: #d4af37;
+      color: var(--gold);
     }
 
     .cal-note {
-      border-left: 2px solid #d4af37;
+      border-left: 2px solid var(--gold);
       padding-left: 1rem;
       margin: 1.5rem 0;
       color: #888;
@@ -98,22 +95,9 @@
     }
 
     .back:hover {
-      color: #d4af37;
+      color: var(--gold);
     }
 
-    .scanline {
-      position: fixed;
-      inset: 0;
-      z-index: 999;
-      pointer-events: none;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.06) 2px,
-        rgba(0, 0, 0, 0.06) 4px
-      );
-    }
   </style>
 </head>
 <body>

@@ -1,0 +1,28 @@
+:root {
+  --gold: #d4af37;
+  --gold-rgb: 212, 175, 55;
+  --dark: #1a1008;
+  --bg: #0a0a0a;
+  --text: #c0c0c0;
+  --font: 'Courier New', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.scanline {
+  position: fixed;
+  inset: 0;
+  z-index: var(--scanline-z, 100);
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, var(--scanline-opacity, 0.08)) 2px,
+    rgba(0, 0, 0, var(--scanline-opacity, 0.08)) 4px
+  );
+}

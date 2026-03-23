@@ -6,17 +6,12 @@
   <title>Evidence Board — The Reality Protocol</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="icon" href="res/images/favicon.png" type="image/png">
+  <link rel="stylesheet" href="res/css/base.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
     body {
       min-height: 100vh;
-      background: #1a1008;
-      font-family: 'Courier New', monospace;
+      background: var(--dark);
+      font-family: var(--font);
       overflow-x: hidden;
       color: #c0c0c0;
     }
@@ -27,21 +22,6 @@
       inset: 0;
       z-index: 0;
       pointer-events: none;
-    }
-
-    /* CRT scanline overlay */
-    .scanline {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      pointer-events: none;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.08) 2px,
-        rgba(0, 0, 0, 0.08) 4px
-      );
     }
 
     /* Cork board background */
@@ -67,11 +47,11 @@
       background: rgba(0, 0, 0, 0.85);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+      border-bottom: 1px solid rgba(var(--gold-rgb), 0.2);
     }
 
     .back-link {
-      color: #d4af37;
+      color: var(--gold);
       text-decoration: none;
       font-size: 0.9rem;
       letter-spacing: 0.1em;
@@ -81,14 +61,14 @@
 
     .back-link:hover {
       color: #fff;
-      text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+      text-shadow: 0 0 10px rgba(var(--gold-rgb), 0.5);
     }
 
     .board-header h1 {
       font-size: clamp(1rem, 3vw, 1.6rem);
-      color: #d4af37;
+      color: var(--gold);
       letter-spacing: 0.3em;
-      text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+      text-shadow: 0 0 20px rgba(var(--gold-rgb), 0.3);
       text-align: center;
     }
 
@@ -96,14 +76,14 @@
       display: flex;
       align-items: center;
       background: rgba(0, 0, 0, 0.6);
-      border: 1px solid rgba(212, 175, 55, 0.2);
+      border: 1px solid rgba(var(--gold-rgb), 0.2);
       padding: 0.4rem 0.8rem;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       min-width: 220px;
     }
 
     .search-prompt {
-      color: #d4af37;
+      color: var(--gold);
       font-size: 0.85rem;
       white-space: nowrap;
     }
@@ -113,10 +93,10 @@
       border: none;
       outline: none;
       color: #c0c0c0;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       font-size: 0.85rem;
       width: 100%;
-      caret-color: #d4af37;
+      caret-color: var(--gold);
     }
 
     .header-controls {
@@ -160,13 +140,13 @@
     }
 
     .day-label {
-      color: #d4af37;
+      color: var(--gold);
       font-size: 0.85rem;
       letter-spacing: 0.25em;
       text-transform: uppercase;
       margin-bottom: 1.5rem;
       padding-left: 0.5rem;
-      border-left: 3px solid #d4af37;
+      border-left: 3px solid var(--gold);
       opacity: 0;
       animation: fade-in 0.6s ease forwards;
     }
@@ -218,7 +198,7 @@
 
     @keyframes deeplink-pulse {
       0%, 100% { box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.4); }
-      50% { box-shadow: 0 0 25px rgba(212, 175, 55, 0.8), 0 0 50px rgba(212, 175, 55, 0.4), 2px 3px 8px rgba(0, 0, 0, 0.4); }
+      50% { box-shadow: 0 0 25px rgba(var(--gold-rgb), 0.8), 0 0 50px rgba(var(--gold-rgb), 0.4), 2px 3px 8px rgba(0, 0, 0, 0.4); }
     }
 
     .evidence-card.filtered-out {
@@ -231,10 +211,10 @@
 
     .evidence-card.tag-match {
       box-shadow:
-        0 0 15px rgba(212, 175, 55, 0.5),
-        0 0 40px rgba(212, 175, 55, 0.2),
+        0 0 15px rgba(var(--gold-rgb), 0.5),
+        0 0 40px rgba(var(--gold-rgb), 0.2),
         4px 6px 12px rgba(0, 0, 0, 0.4);
-      border: 2px solid rgba(212, 175, 55, 0.6);
+      border: 2px solid rgba(var(--gold-rgb), 0.6);
       transform: scale(1.03) rotate(0deg) !important;
       z-index: 10;
       transition: all 0.4s ease;
@@ -246,7 +226,7 @@
 
     @keyframes glow-pulse {
       0%, 100% { box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.4); }
-      50% { box-shadow: 0 0 25px rgba(212, 175, 55, 0.7), 0 0 50px rgba(212, 175, 55, 0.3); }
+      50% { box-shadow: 0 0 25px rgba(var(--gold-rgb), 0.7), 0 0 50px rgba(var(--gold-rgb), 0.3); }
     }
 
     /* Push pin */
@@ -285,7 +265,7 @@
       color: #1a1a1a;
       margin-bottom: 0.8rem;
       line-height: 1.4;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       border-bottom: 1px solid rgba(0, 0, 0, 0.1);
       padding-bottom: 0.6rem;
     }
@@ -347,7 +327,7 @@
       background: rgba(0, 0, 0, 0.06);
       font-size: 0.55rem;
       color: #666;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       text-align: center;
       padding: 4px;
       word-break: break-all;
@@ -361,8 +341,8 @@
       gap: 0.8rem;
       margin-bottom: 1rem;
       padding: 0.7rem 0.8rem;
-      background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(139, 105, 20, 0.08));
-      border: 1px solid rgba(212, 175, 55, 0.25);
+      background: linear-gradient(135deg, rgba(var(--gold-rgb), 0.12), rgba(139, 105, 20, 0.08));
+      border: 1px solid rgba(var(--gold-rgb), 0.25);
       border-radius: 4px;
     }
 
@@ -370,7 +350,7 @@
       width: 40px;
       height: 40px;
       border: none;
-      background: #d4af37;
+      background: var(--gold);
       color: #1a1a1a;
       border-radius: 50%;
       cursor: pointer;
@@ -382,13 +362,13 @@
       flex-shrink: 0;
       padding: 0;
       line-height: 1;
-      box-shadow: 0 2px 6px rgba(212, 175, 55, 0.3);
+      box-shadow: 0 2px 6px rgba(var(--gold-rgb), 0.3);
     }
 
     .play-btn:hover {
       background: #c4a030;
       transform: scale(1.1);
-      box-shadow: 0 3px 10px rgba(212, 175, 55, 0.5);
+      box-shadow: 0 3px 10px rgba(var(--gold-rgb), 0.5);
     }
 
     .audio-details {
@@ -399,7 +379,7 @@
     .audio-label {
       font-size: 0.6rem;
       color: #8b6914;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       letter-spacing: 0.15em;
       text-transform: uppercase;
       margin-bottom: 4px;
@@ -417,7 +397,7 @@
     .progress-fill {
       height: 100%;
       width: 0%;
-      background: #d4af37;
+      background: var(--gold);
       border-radius: 3px;
       transition: width 0.1s linear;
     }
@@ -427,7 +407,7 @@
       color: #8b6914;
       min-width: 32px;
       text-align: right;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       flex-shrink: 0;
     }
 
@@ -439,7 +419,7 @@
 
     .volume-icon {
       font-size: 0.9rem;
-      color: #d4af37;
+      color: var(--gold);
       cursor: pointer;
       user-select: none;
       line-height: 1;
@@ -450,7 +430,7 @@
       appearance: none;
       width: 70px;
       height: 4px;
-      background: rgba(212, 175, 55, 0.2);
+      background: rgba(var(--gold-rgb), 0.2);
       border-radius: 2px;
       outline: none;
       cursor: pointer;
@@ -462,7 +442,7 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: #d4af37;
+      background: var(--gold);
       cursor: pointer;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
@@ -471,7 +451,7 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: #d4af37;
+      background: var(--gold);
       cursor: pointer;
       border: none;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -508,7 +488,7 @@
       background: none;
       border: 1px solid #8b6914;
       color: #8b6914;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       font-size: 0.65rem;
       letter-spacing: 0.1em;
       padding: 0.2rem 0.5rem;
@@ -555,7 +535,7 @@
       background: none;
       border: none;
       color: #c0c0c0;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       font-size: 0.7rem;
       letter-spacing: 0.05em;
       cursor: pointer;
@@ -565,7 +545,7 @@
 
     .share-menu-item:hover {
       background: #3a3a3a;
-      color: #d4af37;
+      color: var(--gold);
     }
 
     .share-menu-item svg {
@@ -576,7 +556,7 @@
     }
 
     .share-copied {
-      color: #d4af37 !important;
+      color: var(--gold) !important;
     }
 
     .card-tags {
@@ -595,7 +575,7 @@
       text-transform: uppercase;
       cursor: pointer;
       transition: opacity 0.2s ease, transform 0.2s ease;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
     }
 
     .tag-pill:hover {
@@ -612,7 +592,7 @@
     .loading-message {
       text-align: center;
       padding: 6rem 2rem;
-      color: #d4af37;
+      color: var(--gold);
       font-size: 1.1rem;
       letter-spacing: 0.2em;
       animation: blink-text 1s step-end infinite;
@@ -655,7 +635,7 @@
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       opacity: 0;
       transform: translateY(10px) rotate(var(--rotation, 1deg));
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
     }
 
     .glimpse-note.visible {
@@ -749,10 +729,10 @@
       max-width: 400px;
       margin: 2rem auto;
       padding: 1rem 2rem;
-      background: rgba(212, 175, 55, 0.1);
-      border: 1px solid rgba(212, 175, 55, 0.3);
-      color: #d4af37;
-      font-family: 'Courier New', monospace;
+      background: rgba(var(--gold-rgb), 0.1);
+      border: 1px solid rgba(var(--gold-rgb), 0.3);
+      color: var(--gold);
+      font-family: var(--font);
       font-size: 0.85rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
@@ -761,19 +741,19 @@
     }
 
     .load-more:hover {
-      background: rgba(212, 175, 55, 0.2);
-      border-color: rgba(212, 175, 55, 0.6);
-      box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+      background: rgba(var(--gold-rgb), 0.2);
+      border-color: rgba(var(--gold-rgb), 0.6);
+      box-shadow: 0 0 15px rgba(var(--gold-rgb), 0.2);
     }
 
     .load-more:disabled {
       opacity: 0.4;
       cursor: default;
-      border-color: rgba(212, 175, 55, 0.1);
+      border-color: rgba(var(--gold-rgb), 0.1);
     }
 
     .load-more:disabled:hover {
-      background: rgba(212, 175, 55, 0.1);
+      background: rgba(var(--gold-rgb), 0.1);
       box-shadow: none;
     }
 
@@ -807,11 +787,11 @@
       align-items: center;
       gap: 0.5rem;
       padding: 0.5rem 0.6rem;
-      background: rgba(212, 175, 55, 0.08);
-      border: 1px solid rgba(212, 175, 55, 0.2);
+      background: rgba(var(--gold-rgb), 0.08);
+      border: 1px solid rgba(var(--gold-rgb), 0.2);
       border-radius: 3px;
       cursor: pointer;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       font-size: 0.7rem;
       color: #3a3520;
       transition: all 0.2s ease;
@@ -820,8 +800,8 @@
     }
 
     .poll-option:hover:not(.voted) {
-      background: rgba(212, 175, 55, 0.15);
-      border-color: rgba(212, 175, 55, 0.4);
+      background: rgba(var(--gold-rgb), 0.15);
+      border-color: rgba(var(--gold-rgb), 0.4);
     }
 
     .poll-option.voted {
@@ -829,8 +809,8 @@
     }
 
     .poll-option.selected {
-      border-color: #d4af37;
-      background: rgba(212, 175, 55, 0.12);
+      border-color: var(--gold);
+      background: rgba(var(--gold-rgb), 0.12);
     }
 
     .poll-bar {
@@ -847,7 +827,7 @@
     .poll-bar-fill {
       height: 100%;
       width: 0%;
-      background: rgba(212, 175, 55, 0.15);
+      background: rgba(var(--gold-rgb), 0.15);
       transition: width 0.6s ease;
       border-radius: 3px;
     }

@@ -6,12 +6,9 @@
   <title>The Reality Protocol — Brotherhood of Awareness</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="icon" href="res/images/favicon.png" type="image/png">
+  <link rel="stylesheet" href="res/css/base.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    .scanline { --scanline-z: 2; }
 
     body {
       min-height: 100vh;
@@ -21,7 +18,7 @@
       background: url('res/images/background-web-v2.jpg') no-repeat center center;
       background-size: cover;
       background-attachment: scroll;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       overflow-x: hidden;
     }
 
@@ -63,7 +60,7 @@
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       padding: 1.5rem 2rem;
-      border: 1px solid rgba(212, 175, 55, 0.08);
+      border: 1px solid rgba(var(--gold-rgb), 0.08);
       border-radius: 2px;
     }
 
@@ -71,7 +68,7 @@
       display: inline-block;
       width: 2px;
       height: 1em;
-      background: #d4af37;
+      background: var(--gold);
       margin-left: 2px;
       vertical-align: text-bottom;
       animation: blink 0.7s step-end infinite;
@@ -94,10 +91,10 @@
       align-items: center;
       gap: 0.6rem;
       padding: 1rem 2rem;
-      border: 2px solid #d4af37;
-      color: #d4af37;
+      border: 2px solid var(--gold);
+      color: var(--gold);
       text-decoration: none;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       font-size: clamp(0.85rem, 2vw, 1.1rem);
       text-transform: uppercase;
       letter-spacing: 0.15em;
@@ -138,15 +135,15 @@
     }
 
     @keyframes pulse-glow {
-      0% { opacity: 1; box-shadow: 0 0 5px rgba(212, 175, 55, 0.1); }
-      50% { opacity: 1; box-shadow: 0 0 20px rgba(212, 175, 55, 0.25), 0 0 40px rgba(212, 175, 55, 0.1); }
-      100% { opacity: 1; box-shadow: 0 0 5px rgba(212, 175, 55, 0.1); }
+      0% { opacity: 1; box-shadow: 0 0 5px rgba(var(--gold-rgb), 0.1); }
+      50% { opacity: 1; box-shadow: 0 0 20px rgba(var(--gold-rgb), 0.25), 0 0 40px rgba(var(--gold-rgb), 0.1); }
+      100% { opacity: 1; box-shadow: 0 0 5px rgba(var(--gold-rgb), 0.1); }
     }
 
     .cta:hover {
-      background: #d4af37;
+      background: var(--gold);
       color: #000;
-      box-shadow: 0 0 30px rgba(212, 175, 55, 0.4), 0 0 60px rgba(212, 175, 55, 0.15);
+      box-shadow: 0 0 30px rgba(var(--gold-rgb), 0.4), 0 0 60px rgba(var(--gold-rgb), 0.15);
       animation: none;
       opacity: 1;
     }
@@ -206,13 +203,13 @@
     }
 
     .scroll-indicator span {
-      color: rgba(212, 175, 55, 0.8);
-      font-family: 'Courier New', monospace;
+      color: rgba(var(--gold-rgb), 0.8);
+      font-family: var(--font);
       font-size: 0.85rem;
       font-weight: bold;
       letter-spacing: 0.3em;
       text-transform: uppercase;
-      text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+      text-shadow: 0 0 10px rgba(var(--gold-rgb), 0.3);
     }
 
     .scroll-chevron-wrapper {
@@ -222,8 +219,8 @@
     .scroll-chevron {
       width: 24px;
       height: 24px;
-      border-right: 2px solid rgba(212, 175, 55, 0.5);
-      border-bottom: 2px solid rgba(212, 175, 55, 0.5);
+      border-right: 2px solid rgba(var(--gold-rgb), 0.5);
+      border-bottom: 2px solid rgba(var(--gold-rgb), 0.5);
       transform: rotate(45deg);
     }
 
@@ -234,8 +231,8 @@
 
     .scroll-indicator:hover span,
     .scroll-indicator:hover .scroll-chevron {
-      color: rgba(212, 175, 55, 0.8);
-      border-color: rgba(212, 175, 55, 0.8);
+      color: rgba(var(--gold-rgb), 0.8);
+      border-color: rgba(var(--gold-rgb), 0.8);
     }
 
     /* Particle network canvas */
@@ -280,17 +277,17 @@
     }
 
     .ghost-link:hover {
-      color: rgba(212, 175, 55, 0.6);
-      text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+      color: rgba(var(--gold-rgb), 0.6);
+      text-shadow: 0 0 10px rgba(var(--gold-rgb), 0.3);
       cursor: pointer;
       animation: none;
     }
 
     @keyframes ghost-shimmer {
       0%, 85%, 100% { color: rgba(255, 255, 255, 0.03); text-shadow: none; }
-      90% { color: rgba(212, 175, 55, 0.25); text-shadow: 0 0 6px rgba(212, 175, 55, 0.15); }
+      90% { color: rgba(var(--gold-rgb), 0.25); text-shadow: 0 0 6px rgba(var(--gold-rgb), 0.15); }
       93% { color: rgba(255, 255, 255, 0.03); text-shadow: none; }
-      95% { color: rgba(212, 175, 55, 0.15); text-shadow: 0 0 4px rgba(212, 175, 55, 0.1); }
+      95% { color: rgba(var(--gold-rgb), 0.15); text-shadow: 0 0 4px rgba(var(--gold-rgb), 0.1); }
     }
 
     .ghost-1 {
@@ -332,7 +329,7 @@
       background: repeating-linear-gradient(
         90deg,
         transparent 0px,
-        rgba(212, 175, 55, 0.15) 1px,
+        rgba(var(--gold-rgb), 0.15) 1px,
         transparent 2px,
         transparent 4px
       );
@@ -365,7 +362,7 @@
       left: 0;
       right: 0;
       background: rgba(0, 0, 0, 0.95);
-      border-top: 1px solid #d4af37;
+      border-top: 1px solid var(--gold);
       padding: 1.5rem;
       text-align: center;
       z-index: 10;
@@ -380,27 +377,13 @@
     }
 
     .secret-panel a {
-      color: #d4af37;
+      color: var(--gold);
       text-decoration: none;
-      border-bottom: 1px solid #d4af37;
+      border-bottom: 1px solid var(--gold);
     }
 
     .secret-panel a:hover {
       color: #fff;
-    }
-
-    .scanline {
-      position: fixed;
-      inset: 0;
-      z-index: 2;
-      pointer-events: none;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.08) 2px,
-        rgba(0, 0, 0, 0.08) 4px
-      );
     }
 
     .evidence-preview {
@@ -415,8 +398,8 @@
 
     .evidence-title {
       text-align: center;
-      color: #d4af37;
-      font-family: 'Courier New', monospace;
+      color: var(--gold);
+      font-family: var(--font);
       font-size: clamp(0.8rem, 2vw, 1rem);
       letter-spacing: 0.3em;
       text-transform: uppercase;
@@ -440,8 +423,8 @@
       background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(212, 175, 55, 0.15);
-      border-left: 3px solid rgba(212, 175, 55, 0.4);
+      border: 1px solid rgba(var(--gold-rgb), 0.15);
+      border-left: 3px solid rgba(var(--gold-rgb), 0.4);
       padding: 1.2rem 1.5rem;
       border-radius: 2px;
       opacity: 0;
@@ -459,15 +442,15 @@
     }
 
     .evidence-card:hover {
-      border-color: rgba(212, 175, 55, 0.4);
-      box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+      border-color: rgba(var(--gold-rgb), 0.4);
+      box-shadow: 0 0 20px rgba(var(--gold-rgb), 0.1);
       transform: translateY(-2px) rotate(0deg);
     }
 
     .evidence-card h3 {
-      color: #d4af37;
+      color: var(--gold);
       font-size: 0.85rem;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       margin-bottom: 0.5rem;
       line-height: 1.4;
       text-transform: uppercase;
@@ -476,21 +459,21 @@
     .evidence-card p {
       color: #888;
       font-size: 0.75rem;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       line-height: 1.5;
     }
 
     .evidence-card .card-date {
       color: #555;
       font-size: 0.65rem;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font);
       margin-top: 0.8rem;
       letter-spacing: 0.1em;
     }
 
     .evidence-card .voice-indicator {
       display: inline-block;
-      color: #d4af37;
+      color: var(--gold);
       font-size: 0.65rem;
       margin-top: 0.5rem;
       opacity: 0.6;
@@ -499,14 +482,14 @@
     .see-more {
       display: block;
       text-align: center;
-      color: #d4af37;
-      font-family: 'Courier New', monospace;
+      color: var(--gold);
+      font-family: var(--font);
       font-size: clamp(0.8rem, 2vw, 0.95rem);
       text-decoration: none;
       letter-spacing: 0.15em;
       text-transform: uppercase;
       padding: 1rem;
-      border: 1px solid rgba(212, 175, 55, 0.2);
+      border: 1px solid rgba(var(--gold-rgb), 0.2);
       background: rgba(0, 0, 0, 0.3);
       transition: all 0.3s ease;
       opacity: 0;
@@ -518,8 +501,8 @@
     }
 
     .see-more:hover {
-      background: rgba(212, 175, 55, 0.1);
-      border-color: rgba(212, 175, 55, 0.5);
+      background: rgba(var(--gold-rgb), 0.1);
+      border-color: rgba(var(--gold-rgb), 0.5);
     }
 
     @media (max-width: 768px) {
