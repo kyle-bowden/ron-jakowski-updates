@@ -33,22 +33,15 @@ Rules for 'persona_summary':
 - Tone: Manic but believable.`;
 
 export async function scrapeStories() {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+  const result = await firecrawl.agent({
+    prompt: PROMPT,
+    schema: firecrawlResponseSchema,
+    model: "spark-1-pro",
+  });
 
-  try {
-    const result = await firecrawl.agent({
-      prompt: PROMPT,
-      schema: firecrawlResponseSchema,
-      model: "spark-1-pro",
-    });
-
-    if (!result || !result.data) {
-      throw new Error("Firecrawl returned no data");
-    }
-
-    return result.data.trending_conspiracy_stories;
-  } finally {
-    clearTimeout(timeout);
+  if (!result || !result.data) {
+    throw new Error("Firecrawl returned no data");
   }
+
+  return result.data.trending_conspiracy_stories;
 }

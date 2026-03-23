@@ -15,18 +15,19 @@ function shellEscape(str) {
   return "'" + str.replace(/'/g, "'\\''") + "'";
 }
 
-export async function sendTextMessage(text) {
-  const cmd = `openclaw message send --channel telegram --target ${shellEscape(config.telegramTarget)} --message ${shellEscape(text)}`;
+async function runOpenclaw(args) {
+  const cmd = `openclaw message send --channel telegram --target ${shellEscape(config.telegramTarget)} ${args}`;
   const { stdout, stderr } = await exec(cmd, { timeout: TIMEOUT });
   if (stderr) console.error("openclaw stderr:", stderr);
   return stdout;
 }
 
+export async function sendTextMessage(text) {
+  return runOpenclaw(`--message ${shellEscape(text)}`);
+}
+
 export async function sendVoiceNote(filePath) {
-  const cmd = `openclaw message send --channel telegram --target ${shellEscape(config.telegramTarget)} --media ${shellEscape(filePath)}`;
-  const { stdout, stderr } = await exec(cmd, { timeout: TIMEOUT });
-  if (stderr) console.error("openclaw stderr:", stderr);
-  return stdout;
+  return runOpenclaw(`--media ${shellEscape(filePath)}`);
 }
 
 export async function sendSequence(story, voicePath) {

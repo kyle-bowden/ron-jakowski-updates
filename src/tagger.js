@@ -1,8 +1,5 @@
-import OpenAI from "openai";
-import { config } from "./config.js";
+import { openai } from "./openai-client.js";
 import { getExistingTags, saveStoryTags } from "./store.js";
-
-const openai = new OpenAI({ apiKey: config.openaiApiKey });
 
 export async function tagStories(stories) {
   if (!stories.length) return;

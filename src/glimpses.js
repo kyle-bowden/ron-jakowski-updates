@@ -1,8 +1,5 @@
-import OpenAI from "openai";
+import { openai } from "./openai-client.js";
 import { pool } from "./db.js";
-import { config } from "./config.js";
-
-const openai = new OpenAI({ apiKey: config.openaiApiKey });
 
 const SYSTEM_PROMPT = `You are Cal Jakowski. You're the younger brother of Ron Jakowski. Ron went dark years ago — you don't know if he's alive, hiding, or if "they" got to him. You picked up where Ron left off, running a Telegram channel called "The Reality Protocol."
 
@@ -73,7 +70,7 @@ export async function generateGlimpse() {
     : allCategories[Math.floor(Math.random() * allCategories.length)];
 
   const response = await openai.chat.completions.create({
-    model: "gpt-5.4-mini",
+    model: "gpt-4o-mini",
     temperature: 0.95,
     max_completion_tokens: 150,
     messages: [

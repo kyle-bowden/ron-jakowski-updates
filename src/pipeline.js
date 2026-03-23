@@ -21,21 +21,6 @@ function pickRandom(stories) {
   return stories[Math.floor(Math.random() * stories.length)];
 }
 
-function randomTimeBetween(startHour, endHour) {
-  const now = new Date();
-  const start = new Date(now);
-  start.setHours(startHour, 0, 0, 0);
-  const end = new Date(now);
-  end.setHours(endHour, 0, 0, 0);
-
-  const startMs = Math.max(start.getTime(), now.getTime());
-  const endMs = end.getTime();
-
-  if (startMs >= endMs) return null;
-
-  return new Date(startMs + Math.random() * (endMs - startMs));
-}
-
 function generateSendTimes(count, startHour = 7, endHour = 24) {
   const now = new Date();
   const start = new Date(now);
@@ -73,19 +58,10 @@ export async function runScrape() {
   // Attach IDs to stories for downstream use
   const storiesWithIds = stories.map((s, i) => ({ ...s, id: ids[i], batchId }));
 
-  try {
-    await tagStories(storiesWithIds);
-    console.log("Stories tagged");
-  } catch (err) {
-    console.error("Tagging failed (non-fatal):", err.message);
-  }
-
-  try {
-    await generatePolls(storiesWithIds);
-    console.log("Polls generated");
-  } catch (err) {
-    console.error("Poll generation failed (non-fatal):", err.message);
-  }
+  await Promise.all([
+    tagStories(storiesWithIds).catch(err => console.error("Tagging failed (non-fatal):", err.message)),
+    generatePolls(storiesWithIds).catch(err => console.error("Poll generation failed (non-fatal):", err.message)),
+  ]);
 
   return storiesWithIds;
 }
@@ -182,7 +158,7 @@ function schedulePendingEntries(schedule) {
     }
   }
 
-  console.log(`\nMessages will send between now and 22:00.`);
+  console.log(`\nMessages will send between now and midnight.`);
 }
 
 function findNextSendTime(schedule, currentIndex) {
@@ -212,16 +188,14 @@ async function postToX(story) {
   }
 
   // Use first available x_post + append deeplink to evidence card
-  const postText = typeof xPosts[0] === "string" ? xPosts[0] : xPosts[0];
   const deeplink = story.id ? `\n\nhttps://caljakowski.com/board.html#story-${story.id}` : "";
-  const text = postText + deeplink;
+  const text = xPosts[0] + deeplink;
 
   // Check for image-like media links
   const imageExts = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-  const imageUrl = (story.media_links || []).find((link) => {
-    const url = typeof link === "string" ? link : link;
-    return imageExts.some((ext) => url.toLowerCase().split("?")[0].endsWith(ext));
-  });
+  const imageUrl = (story.media_links || []).find((url) =>
+    imageExts.some((ext) => url.toLowerCase().split("?")[0].endsWith(ext))
+  );
 
   if (imageUrl) {
     await postTweetWithImage(text, imageUrl);
@@ -234,7 +208,7 @@ async function dispatchSend(entry, schedule) {
   try {
     console.log(`\n[${new Date().toISOString()}] Sending: ${entry.story.post_title}`);
     await runSend(entry.story, entry.voicePath);
-    await markEntrySent(entry.index);
+    await markEntrySent(schedule.id, entry.index);
     if (entry.story.id) {
       await publishStory(entry.story.id);
       console.log(`Published story ${entry.story.id}`);
@@ -260,11 +234,10 @@ async function dispatchSend(entry, schedule) {
   }
 }
 
-export async function runDailyPipeline() {
-  console.log(`[${new Date().toISOString()}] Daily pipeline starting...`);
+async function startSchedule(prepareFn, label) {
+  console.log(`[${new Date().toISOString()}] ${label}...`);
 
   const existing = await getTodaySchedule();
-
   if (existing) {
     const sentCount = existing.entries.filter((e) => e.sent).length;
     console.log(`Found existing schedule for today (${sentCount}/${existing.entries.length} sent)`);
@@ -272,23 +245,16 @@ export async function runDailyPipeline() {
     return;
   }
 
-  const schedule = await prepareNewSchedule();
+  const schedule = await prepareFn();
   schedulePendingEntries(schedule);
 }
 
+export async function runDailyPipeline() {
+  return startSchedule(prepareNewSchedule, "Daily pipeline starting");
+}
+
 export async function runFromStored_daily() {
-  console.log(`[${new Date().toISOString()}] Running from stored stories...`);
-
-  const existing = await getTodaySchedule();
-  if (existing) {
-    const sentCount = existing.entries.filter((e) => e.sent).length;
-    console.log(`Found existing schedule for today (${sentCount}/${existing.entries.length} sent)`);
-    schedulePendingEntries(existing);
-    return;
-  }
-
-  const schedule = await prepareScheduleFromStored();
-  schedulePendingEntries(schedule);
+  return startSchedule(prepareScheduleFromStored, "Running from stored stories");
 }
 
 // Single-story pipeline for --run-once

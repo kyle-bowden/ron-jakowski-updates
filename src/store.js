@@ -24,13 +24,13 @@ export async function saveStories(newStories) {
         story.post_title_citation || null,
         story.content_summary,
         story.content_summary_citation || null,
-        JSON.stringify(normalizeTextMessages(story.text_messages)),
-        JSON.stringify(normalizeMediaLinks(story.media_links)),
+        JSON.stringify(normalizeValueArray(story.text_messages)),
+        JSON.stringify(normalizeValueArray(story.media_links)),
         story.persona_summary,
         story.persona_summary_citation || null,
         story.discussion_link,
         story.discussion_link_citation || null,
-        JSON.stringify(normalizeXPosts(story.x_posts)),
+        JSON.stringify(normalizeValueArray(story.x_posts)),
       ]
     );
     ids.push(rows[0].id);
@@ -98,14 +98,11 @@ export async function createTodaySchedule(entries) {
   return { id: scheduleId, date: todayDate(), entries };
 }
 
-export async function markEntrySent(index) {
-  const schedule = await getTodaySchedule();
-  if (!schedule) return;
-
+export async function markEntrySent(scheduleId, index) {
   await pool.query(
     `UPDATE schedule_entries SET sent = TRUE, sent_at = NOW()
      WHERE schedule_id = $1 AND entry_index = $2`,
-    [schedule.id, index]
+    [scheduleId, index]
   );
 }
 
@@ -136,26 +133,19 @@ export async function getExistingTags() {
 
 export async function getStoriesWithoutTags() {
   const { rows } = await pool.query(
-    `SELECT s.* FROM stories s LEFT JOIN story_tags st ON s.id = st.story_id WHERE st.story_id IS NULL`
+    `SELECT s.id, s.post_title, s.content_summary FROM stories s LEFT JOIN story_tags st ON s.id = st.story_id WHERE st.story_id IS NULL`
   );
   return rows.map(rowToStory);
 }
 
-// Normalize text_messages: supports both old format (string[]) and new format ({value, value_citation}[])
-function normalizeTextMessages(messages) {
-  if (!messages) return [];
-  return messages.map((m) => (typeof m === "string" ? m : m.value));
+function normalizeValueArray(arr) {
+  if (!arr) return [];
+  return arr.map((item) => (typeof item === "string" ? item : item.value));
 }
 
-// Normalize media_links: extract URLs from {value, value_citation}[] format
-function normalizeMediaLinks(links) {
-  if (!links) return [];
-  return links.map((l) => (typeof l === "string" ? l : l.value));
-}
-
-function normalizeXPosts(posts) {
-  if (!posts) return [];
-  return posts.map((p) => (typeof p === "string" ? p : p.value));
+function parseJsonField(val) {
+  if (!val) return [];
+  return typeof val === "string" ? JSON.parse(val) : val;
 }
 
 function rowToStory(row) {
@@ -165,13 +155,13 @@ function rowToStory(row) {
     post_title_citation: row.post_title_citation,
     content_summary: row.content_summary,
     content_summary_citation: row.content_summary_citation,
-    text_messages: normalizeTextMessages(typeof row.text_messages === "string" ? JSON.parse(row.text_messages) : row.text_messages),
-    media_links: normalizeMediaLinks(typeof row.media_links === "string" ? JSON.parse(row.media_links) : (row.media_links || [])),
+    text_messages: normalizeValueArray(parseJsonField(row.text_messages)),
+    media_links: normalizeValueArray(parseJsonField(row.media_links)),
     persona_summary: row.persona_summary,
     persona_summary_citation: row.persona_summary_citation,
     discussion_link: row.discussion_link,
     discussion_link_citation: row.discussion_link_citation,
-    x_posts: normalizeXPosts(typeof row.x_posts === "string" ? JSON.parse(row.x_posts) : (row.x_posts || [])),
+    x_posts: normalizeValueArray(parseJsonField(row.x_posts)),
     voice_url: row.voice_url || null,
     batchId: row.batch_id,
     createdAt: row.created_at,
