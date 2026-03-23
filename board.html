@@ -499,6 +499,86 @@
       color: #1a1a1a;
     }
 
+    /* Share button */
+    .share-wrapper {
+      position: relative;
+    }
+
+    .share-btn {
+      background: none;
+      border: 1px solid #8b6914;
+      color: #8b6914;
+      font-family: 'Courier New', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      padding: 0.2rem 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .share-btn:hover {
+      background: #8b6914;
+      color: #f5f0e0;
+    }
+
+    .share-btn svg {
+      width: 0.75em;
+      height: 0.75em;
+      fill: currentColor;
+    }
+
+    .share-menu {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 0.4rem);
+      right: 0;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      z-index: 50;
+      min-width: 160px;
+    }
+
+    .share-menu.open {
+      display: block;
+    }
+
+    .share-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      background: none;
+      border: none;
+      color: #c0c0c0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+
+    .share-menu-item:hover {
+      background: #3a3a3a;
+      color: #d4af37;
+    }
+
+    .share-menu-item svg {
+      width: 1em;
+      height: 1em;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+
+    .share-copied {
+      color: #d4af37 !important;
+    }
+
     .card-tags {
       display: flex;
       flex-wrap: wrap;
@@ -1398,6 +1478,70 @@
               footer.appendChild(document.createElement('span'));
             }
 
+            // Share button
+            const shareWrapper = document.createElement('div');
+            shareWrapper.className = 'share-wrapper';
+
+            const shareBtn = document.createElement('button');
+            shareBtn.className = 'share-btn';
+            shareBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg> SHARE';
+            shareWrapper.appendChild(shareBtn);
+
+            const shareMenu = document.createElement('div');
+            shareMenu.className = 'share-menu';
+
+            const storyUrl = `${window.location.origin}/board.html#story-${story.id}`;
+            const shareTitle = story.post_title || 'Evidence';
+
+            // Copy link
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'share-menu-item';
+            copyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy link';
+            copyBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(storyUrl).then(() => {
+                copyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Copied';
+                copyBtn.classList.add('share-copied');
+                setTimeout(() => {
+                  copyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy link';
+                  copyBtn.classList.remove('share-copied');
+                  shareMenu.classList.remove('open');
+                }, 1500);
+              });
+            });
+            shareMenu.appendChild(copyBtn);
+
+            // Share on X
+            const xLink = document.createElement('a');
+            xLink.className = 'share-menu-item';
+            xLink.href = `https://x.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(storyUrl)}`;
+            xLink.target = '_blank';
+            xLink.rel = 'noopener';
+            xLink.innerHTML = '<svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> Share on X';
+            xLink.addEventListener('click', (e) => e.stopPropagation());
+            shareMenu.appendChild(xLink);
+
+            // Share on Telegram
+            const tgLink = document.createElement('a');
+            tgLink.className = 'share-menu-item';
+            tgLink.href = `https://t.me/share/url?url=${encodeURIComponent(storyUrl)}&text=${encodeURIComponent(shareTitle)}`;
+            tgLink.target = '_blank';
+            tgLink.rel = 'noopener';
+            tgLink.innerHTML = '<svg viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg> Share on Telegram';
+            tgLink.addEventListener('click', (e) => e.stopPropagation());
+            shareMenu.appendChild(tgLink);
+
+            shareWrapper.appendChild(shareMenu);
+
+            shareBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              // Close any other open menus
+              document.querySelectorAll('.share-menu.open').forEach(m => { if (m !== shareMenu) m.classList.remove('open'); });
+              shareMenu.classList.toggle('open');
+            });
+
+            footer.appendChild(shareWrapper);
+
             if (tags.length) {
               const tagsDiv = document.createElement('div');
               tagsDiv.className = 'card-tags';
@@ -1549,12 +1693,19 @@
         }
       }, { threshold: 0.1 });
 
+      // ── Close share menus on outside click ──
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.share-menu.open').forEach(m => m.classList.remove('open'));
+      });
+
       // ── Initial render ──
       renderStories(stories);
       if (glimpses.length) renderGlimpses(glimpses);
 
-      // ── Deeplink: ?story=ID scrolls to and highlights a specific story ──
-      const deepStoryId = new URLSearchParams(window.location.search).get('story');
+      // ── Deeplink: ?story=ID or #story-ID scrolls to and highlights a specific story ──
+      const queryStoryId = new URLSearchParams(window.location.search).get('story');
+      const hashMatch = window.location.hash.match(/^#story-(\d+)$/);
+      const deepStoryId = queryStoryId || (hashMatch && hashMatch[1]);
       if (deepStoryId) {
         let target = document.getElementById(`story-${deepStoryId}`);
 
