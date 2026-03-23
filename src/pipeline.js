@@ -343,16 +343,17 @@ async function dispatchGlimpse() {
         console.log("[Glimpse] Rolling image path...");
         const { imageBuffer, imageUrl } = await generateGlimpseImage(xText);
 
-        // Send image to Telegram as a photo with caption
+        // Save to openclaw media dir (required by openclaw's media access policy)
         const { writeFile, unlink: unlinkFile } = await import("node:fs/promises");
-        const tmpPath = `/tmp/glimpse-${Date.now()}.png`;
-        await writeFile(tmpPath, imageBuffer);
+        const { homedir } = await import("node:os");
+        const mediaDir = `${homedir()}/.openclaw/media`;
+        const mediaPath = `${mediaDir}/glimpse-${Date.now()}.png`;
+        await writeFile(mediaPath, imageBuffer);
 
-        // Use openclaw to send the image
-        const { sendVoiceNote: sendMedia } = await import("./telegram.js");
+        // Send text first, then image to Telegram
         await sendTextMessage(xText);
-        await sendMedia(tmpPath);
-        await unlinkFile(tmpPath).catch(() => {});
+        await sendVoiceNote(mediaPath);
+        await unlinkFile(mediaPath).catch(() => {});
 
         console.log(`[Glimpse] Image sent to Telegram`);
 
