@@ -15,8 +15,8 @@ export async function saveStories(newStories) {
   for (const story of newStories) {
     const { rows } = await pool.query(
       `INSERT INTO stories (batch_id, post_title, post_title_citation, content_summary, content_summary_citation,
-        text_messages, media_links, persona_summary, persona_summary_citation, discussion_link, discussion_link_citation)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        text_messages, media_links, persona_summary, persona_summary_citation, discussion_link, discussion_link_citation, x_posts)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING id`,
       [
         batchId,
@@ -30,6 +30,7 @@ export async function saveStories(newStories) {
         story.persona_summary_citation || null,
         story.discussion_link,
         story.discussion_link_citation || null,
+        JSON.stringify(normalizeXPosts(story.x_posts)),
       ]
     );
     ids.push(rows[0].id);
@@ -152,6 +153,11 @@ function normalizeMediaLinks(links) {
   return links.map((l) => (typeof l === "string" ? l : l.value));
 }
 
+function normalizeXPosts(posts) {
+  if (!posts) return [];
+  return posts.map((p) => (typeof p === "string" ? p : p.value));
+}
+
 function rowToStory(row) {
   return {
     id: row.id,
@@ -165,6 +171,7 @@ function rowToStory(row) {
     persona_summary_citation: row.persona_summary_citation,
     discussion_link: row.discussion_link,
     discussion_link_citation: row.discussion_link_citation,
+    x_posts: normalizeXPosts(typeof row.x_posts === "string" ? JSON.parse(row.x_posts) : (row.x_posts || [])),
     voice_url: row.voice_url || null,
     batchId: row.batch_id,
     createdAt: row.created_at,
