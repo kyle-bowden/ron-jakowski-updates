@@ -720,6 +720,15 @@
     }
 
     @media (max-width: 768px) {
+      .evidence-cards:has(.glimpse-cluster) {
+        grid-template-columns: 1fr;
+      }
+
+      .evidence-cards > .glimpse-cluster {
+        grid-row: auto;
+        grid-column: auto;
+      }
+
       .glimpse-cluster {
         max-width: 100%;
         margin-left: 0;
