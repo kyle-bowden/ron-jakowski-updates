@@ -15,7 +15,10 @@ import { generateVoiceNote } from "./voice.js";
 import { sendSequence, sendTextMessage, sendVoiceNote } from "./telegram.js";
 import { generateGlimpse, updateGlimpseVoiceUrl } from "./glimpses.js";
 import { postTweet, postTweetWithImage } from "./x.js";
+import { generateGlimpseImage } from "./image-generator.js";
 import { config } from "./config.js";
+
+const GLIMPSE_IMAGE_CHANCE = 0.3;
 
 function pickRandom(stories) {
   return stories[Math.floor(Math.random() * stories.length)];
@@ -331,38 +334,77 @@ async function dispatchGlimpse() {
   try {
     console.log(`\n[${new Date().toISOString()}] Sending Cal glimpse...`);
     const glimpse = await generateGlimpse();
+    const xText = glimpse.text.replace(/\[.*?\]\s*/g, "").trim();
+    const useImage = config.nanobananaEnabled && Math.random() < GLIMPSE_IMAGE_CHANCE;
 
-    let voicePath = null;
-    try {
-      const voiceResult = await generateVoiceNote(glimpse.text);
-      voicePath = voiceResult.localPath;
-      if (voiceResult.publicUrl && glimpse.id) {
-        await updateGlimpseVoiceUrl(glimpse.id, voiceResult.publicUrl);
+    if (useImage) {
+      // Image glimpse path
+      try {
+        console.log("[Glimpse] Rolling image path...");
+        const { imageBuffer, imageUrl } = await generateGlimpseImage(xText);
+
+        // Send image to Telegram as a photo with caption
+        const { writeFile, unlink: unlinkFile } = await import("node:fs/promises");
+        const tmpPath = `/tmp/glimpse-${Date.now()}.png`;
+        await writeFile(tmpPath, imageBuffer);
+
+        // Use openclaw to send the image
+        const { sendVoiceNote: sendMedia } = await import("./telegram.js");
+        await sendTextMessage(xText);
+        await sendMedia(tmpPath);
+        await unlinkFile(tmpPath).catch(() => {});
+
+        console.log(`[Glimpse] Image sent to Telegram`);
+
+        // Post image + text to X
+        try {
+          if (config.xEnabled && xText) {
+            await postTweetWithImage(xText, imageUrl);
+          }
+        } catch (err) {
+          console.error(`[X] Glimpse image tweet failed (non-fatal): ${err.message}`);
+        }
+      } catch (err) {
+        console.error(`[Glimpse] Image generation failed, falling back to voice: ${err.message}`);
+        await dispatchGlimpseVoice(glimpse, xText);
       }
-      console.log(`Glimpse voice generated: ${voicePath}`);
-    } catch (err) {
-      console.error("Glimpse voice generation failed, sending text only:", err.message);
-    }
-
-    if (voicePath) {
-      await sendVoiceNote(voicePath);
     } else {
-      await sendTextMessage(glimpse.text);
+      // Voice glimpse path (existing behavior)
+      await dispatchGlimpseVoice(glimpse, xText);
     }
 
     console.log(`Glimpse sent: ${glimpse.text}`);
-
-    // Post glimpse to X (strip performance cues — they don't work as text on X)
-    try {
-      if (config.xEnabled) {
-        const xText = glimpse.text.replace(/\[.*?\]\s*/g, "").trim();
-        if (xText) await postTweet(xText);
-      }
-    } catch (err) {
-      console.error(`[X] Glimpse tweet failed (non-fatal): ${err.message}`);
-    }
   } catch (err) {
     console.error("Glimpse failed:", err.message);
+  }
+}
+
+async function dispatchGlimpseVoice(glimpse, xText) {
+  let voicePath = null;
+  try {
+    const voiceResult = await generateVoiceNote(glimpse.text);
+    voicePath = voiceResult.localPath;
+    if (voiceResult.publicUrl && glimpse.id) {
+      await updateGlimpseVoiceUrl(glimpse.id, voiceResult.publicUrl);
+    }
+    console.log(`Glimpse voice generated: ${voicePath}`);
+  } catch (err) {
+    console.error("Glimpse voice generation failed, sending text only:", err.message);
+  }
+
+  if (voicePath) {
+    await sendVoiceNote(voicePath);
+  } else {
+    await sendTextMessage(glimpse.text);
+  }
+
+  // Post glimpse to X (strip performance cues)
+  try {
+    if (config.xEnabled && xText) {
+      await postTweet(xText);
+    }
+  } catch (err) {
+    console.error(`[X] Glimpse tweet failed (non-fatal): ${err.message}`);
   }
 }
 

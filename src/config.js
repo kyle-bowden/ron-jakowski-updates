@@ -22,4 +22,6 @@ export const config = Object.freeze({
   xAccessToken: process.env.X_ACCESS_TOKEN || null,
   xAccessTokenSecret: process.env.X_ACCESS_TOKEN_SECRET || null,
   xEnabled: !!(process.env.X_API_KEY && process.env.X_API_SECRET && process.env.X_ACCESS_TOKEN && process.env.X_ACCESS_TOKEN_SECRET),
+  nanobananaApiKey: process.env.NANOBANANA_API_KEY || null,
+  nanobananaEnabled: !!process.env.NANOBANANA_API_KEY,
 });
