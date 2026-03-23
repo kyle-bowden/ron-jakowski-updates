@@ -211,8 +211,10 @@ async function postToX(story) {
     return;
   }
 
-  // Use first available x_post
-  const text = typeof xPosts[0] === "string" ? xPosts[0] : xPosts[0];
+  // Use first available x_post + append deeplink to evidence card
+  const postText = typeof xPosts[0] === "string" ? xPosts[0] : xPosts[0];
+  const deeplink = story.id ? `\n\nhttps://caljakowski.com/board.html#story-${story.id}` : "";
+  const text = postText + deeplink;
 
   // Check for image-like media links
   const imageExts = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
