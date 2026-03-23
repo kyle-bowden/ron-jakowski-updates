@@ -332,6 +332,16 @@ async function dispatchGlimpse() {
     }
 
     console.log(`Glimpse sent: ${glimpse.text}`);
+
+    // Post glimpse to X (strip performance cues — they don't work as text on X)
+    try {
+      if (config.xEnabled) {
+        const xText = glimpse.text.replace(/\[.*?\]\s*/g, "").trim();
+        if (xText) await postTweet(xText);
+      }
+    } catch (err) {
+      console.error(`[X] Glimpse tweet failed (non-fatal): ${err.message}`);
+    }
   } catch (err) {
     console.error("Glimpse failed:", err.message);
   }
