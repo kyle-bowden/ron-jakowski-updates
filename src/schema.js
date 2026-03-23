@@ -13,6 +13,10 @@ export const storySchema = z.object({
     value: z.string(),
     value_citation: z.string().describe("Source URL for this value").optional(),
   })),
+  x_posts: z.array(z.object({
+    value: z.string(),
+    value_citation: z.string().describe("Source URL for this value").optional(),
+  })).default([]),
   persona_summary: z.string(),
   persona_summary_citation: z.string().describe("Source URL for persona_summary").optional(),
   discussion_link: z.string(),
