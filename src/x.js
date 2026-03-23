@@ -71,3 +71,25 @@ export async function verifyCredentials() {
   const auth = oauthSign("GET", url);
   return request("GET", url, { Authorization: auth });
 }
+
+async function createTweet(text, mediaIds = []) {
+  const url = "https://api.x.com/2/tweets";
+  // Do NOT pass JSON body params to oauthSign — only query params go in the signature
+  const auth = oauthSign("POST", url);
+  const payload = { text };
+  if (mediaIds.length > 0) {
+    payload.media = { media_ids: mediaIds };
+  }
+  const body = JSON.stringify(payload);
+  return request("POST", url, {
+    Authorization: auth,
+    "Content-Type": "application/json",
+  }, body);
+}
+
+export async function postTweet(text) {
+  console.log(`[X] Posting tweet: ${text.slice(0, 50)}...`);
+  const result = await createTweet(text);
+  console.log(`[X] Tweet posted: ${result.data.data.id}`);
+  return result.data.data.id;
+}
