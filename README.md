@@ -1,12 +1,32 @@
-# Ron Jakowski Conspiracy Bot
+# The Reality Protocol — Cal Jakowski Conspiracy Bot
 
-Scrapes trending conspiracy stories from Reddit via Firecrawl, generates frantic voice notes via ElevenLabs, and sends panicked text + voice messages to Telegram via the `openclaw` CLI.
+Inspired by the GTA VI release and Ron Jakowski's paranoid conspiracies, this is Cal Jakowski — Ron's fictional younger brother who picked up where Ron left off. Cal runs an autonomous conspiracy channel across Telegram, X (Twitter), and his own evidence board at [caljakowski.com](https://caljakowski.com).
+
+The bot scrapes trending conspiracy discussions from Reddit via **Firecrawl**, generates frantic voice notes via **ElevenLabs**, and dispatches them across platforms with realistic timing. Cal doesn't tell you what to think — he just sends you the evidence and says "look at this properly."
+
+## How It Works
+
+1. **Scrape** — Firecrawl's AI agent (`spark-1-pro`) autonomously browses Reddit, extracts conspiracy stories with structured data (headlines, summaries, media links, voice scripts, tweets)
+2. **Voice** — ElevenLabs (`eleven_v3`) generates Cal's voice notes — frantic phone-call-style delivery with whispered asides and heavy breathing
+3. **Tag & Poll** — OpenAI tags stories and generates community polls
+4. **Schedule** — Stories are scheduled at random times throughout the day (7am–midnight)
+5. **Dispatch** — At each scheduled time:
+   - Frantic text messages sent to Telegram with escalating delays
+   - Voice note dropped to Telegram
+   - Tweet posted to X with deeplink to the evidence board
+6. **Glimpses** — 1-2 times daily, Cal sends personal fragments (memories, habits, fears) as either voice notes (70%) or AI-generated GTA-style artwork (30%)
+
+## Live Platforms
+
+- **Telegram:** [@ronjakowski](https://t.me/ronjakowski)
+- **X (Twitter):** [@caljakowski](https://x.com/caljakowski)
+- **Website:** [caljakowski.com](https://caljakowski.com)
 
 ## Prerequisites
 
 - Node.js 18+
-- `openclaw` CLI installed and configured with Telegram channel
-- Stories are stored in a local JSON file (no database required)
+- `openclaw` CLI installed and configured with Telegram
+- Supabase project (Postgres + Storage)
 
 ## Setup
 
@@ -15,89 +35,75 @@ npm install
 cp .env.example .env
 ```
 
-Edit `.env` and fill in your API keys:
+Fill in `.env`:
 
-```
-FIRECRAWL_API_KEY=your-firecrawl-key
-ELEVENLABS_API_KEY=your-elevenlabs-key
-ELEVENLABS_VOICE_ID=1zvnni6XluAvqQJWPf1M
-TELEGRAM_TARGET=@ronjakowski
-```
-
-`ELEVENLABS_VOICE_ID` and `TELEGRAM_TARGET` have defaults — only set them if you need different values.
-
-## How it works
-
-1. Every day at **6:00 AM**, Firecrawl scrapes Reddit for trending conspiracy stories
-2. All stories are saved to `data/stories.json`
-3. Voice notes are generated for **all** stories via ElevenLabs
-4. Each story is scheduled to send at a **random time** between 7:00 and 22:00
-5. At the scheduled time, the bot sends 3-5 frantic text messages (with realistic delays), then drops the voice note
-
-If voice generation fails for a story, it falls back to text-only messages.
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `FIRECRAWL_API_KEY` | Yes | Reddit scraping via Firecrawl agent |
+| `ELEVENLABS_API_KEY` | Yes | Voice note generation |
+| `OPENAI_API_KEY` | Yes | Story tagging, polls, glimpses |
+| `DATABASE_URL` | Yes | Supabase Postgres connection |
+| `SUPABASE_URL` | Yes | Supabase project URL |
+| `SUPABASE_SECRET_KEY` | Yes | Supabase service role key |
+| `X_API_KEY` | No | X (Twitter) posting |
+| `X_API_SECRET` | No | X (Twitter) posting |
+| `X_ACCESS_TOKEN` | No | X (Twitter) posting |
+| `X_ACCESS_TOKEN_SECRET` | No | X (Twitter) posting |
+| `NANOBANANA_API_KEY` | No | AI image generation for glimpses |
+| `CLOUDFLARE_API_TOKEN` | No | Worker deployment |
 
 ## Usage
 
-### Run on schedule (production)
-
 ```bash
-node src/index.js
+npm start              # Start scheduler (cron at 6am daily)
+npm run run-now        # Trigger daily pipeline immediately
+npm run start:ui       # Local dev server for the website
+
+# Individual steps
+node src/index.js --run-once    # Single story: scrape → voice → send → exit
+node src/index.js --scrape      # Scrape + store only
+node src/index.js --voice       # Generate voice from stored story
+node src/index.js --send        # Generate voice + send (random story)
 ```
 
-Long-running process. Scrapes at 6:00 AM daily, then sends all stories at random times throughout the day.
-
-### Daily pipeline now (for testing)
-
-```bash
-node src/index.js --run-now
-```
-
-Scrapes stories, generates all voice notes, and schedules sends throughout the rest of the day. Process stays alive to dispatch messages at scheduled times.
-
-### Single story pipeline
-
-```bash
-node src/index.js --run-once
-```
-
-Scrapes, picks one random story, generates voice, sends immediately, then exits.
-
-### Individual steps
-
-```bash
-# Scrape and store stories only (no voice, no Telegram)
-node src/index.js --scrape
-
-# Generate a voice note from a stored story (random pick)
-node src/index.js --voice
-
-# Generate voice + send to Telegram (random pick)
-node src/index.js --send
-
-# Use a specific story by index (0-based, from data/stories.json)
-node src/index.js --voice --story=0
-node src/index.js --send --story=3
-
-# Send texts + existing voice file (no scraping, no voice generation)
-node src/index.js --send-only --story=0 --voice-file=~/.openclaw/media/voice-123456.ogg
-
-# Send texts only from a stored story (no voice)
-node src/index.js --send-only --story=0
-```
-
-`--voice` saves the `.ogg` file in `~/.openclaw/media/` — useful for testing ElevenLabs independently.
-`--send-only` skips scraping and voice generation, uses a pre-existing voice file via `--voice-file=`.
-
-## Project structure
+## Architecture
 
 ```
 src/
-  index.js      — Entry point, cron scheduler
-  config.js     — Env var loading and validation
-  schema.js     — Zod schema for story data
-  store.js      — JSON file storage (data/stories.json)
-  scraper.js    — Firecrawl agent integration
-  voice.js      — ElevenLabs TTS (output to ~/.openclaw/media/)
-  telegram.js   — openclaw CLI wrapper
-  pipeline.js   — Pipeline orchestration + random time scheduling
+  index.js             — CLI entry point, cron scheduler
+  config.js            — Env var config (X + NanoBanana optional)
+  pipeline.js          — Daily pipeline orchestration + scheduling
+  scraper.js           — Firecrawl agent scraper with Zod schema
+  store.js             — Supabase/Postgres persistence
+  db.js                — Postgres pool
+  openai-client.js     — Shared OpenAI client
+  schema.js            — Zod schemas for story validation
+  telegram.js          — Telegram sending via openclaw CLI
+  x.js                 — X API client (OAuth 1.0a, tweets + media)
+  voice.js             — ElevenLabs voice generation + Supabase upload
+  image-generator.js   — NanoBanana AI image generation (GTA style)
+  tagger.js            — AI story tagging
+  poll-generator.js    — AI poll generation
+  glimpses.js          — Cal's personal glimpse generation
+
+worker/
+  twitter-cards.js     — Cloudflare Worker for dynamic Twitter Cards
+  wrangler.toml        — Worker deployment config
+
+Website (GitHub Pages + Cloudflare):
+  index.html           — Landing page
+  board.html           — Evidence board with audio, polls, sharing
+  autobiography.html   — Cal's backstory
+  res/css/base.css     — Shared styles
+  res/js/              — Shared JS (particles, cache, icons, Supabase)
 ```
+
+## Key Integrations
+
+- **Firecrawl** — AI agent scrapes Reddit, returns structured story data validated against Zod schema
+- **ElevenLabs** — `eleven_v3` model generates Cal's voice with `opus_48000_128` format
+- **OpenAI** — `gpt-5.4-mini` for tagging, polls, glimpses, and image scene prompts
+- **X API** — OAuth 1.0a signing, v2 tweets, v1.1 media upload
+- **NanoBanana** — Image-to-image generation using Cal's GTA-style reference for character consistency
+- **Cloudflare Worker** — Serves dynamic OG/Twitter Card meta tags per story via `/story/ID` paths
+- **Supabase** — Postgres for all data, Storage for voice files and media
