@@ -1,6 +1,11 @@
 name = "caljakowski-twitter-cards"
 main = "twitter-cards.js"
 compatibility_date = "2024-01-01"
+workers_dev = false
+
+[[routes]]
+pattern = "caljakowski.com/board.html*"
+zone_name = "caljakowski.com"
 
 [vars]
 SUPABASE_URL = "https://iaewobmdruabgqwmcytw.supabase.co"

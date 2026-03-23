@@ -29,24 +29,24 @@ function buildMetaHtml(storyId, title) {
   const pageUrl = `https://caljakowski.com/board.html?story=${storyId}`;
   const image = "https://caljakowski.com/res/images/evidence_board-web.jpg";
   const siteName = "Evidence Board — The Reality Protocol";
-  const description = title || "Intercepted transmissions. Cal logged everything before they changed it.";
+  const cardTitle = title || "Intercepted transmissions. Cal logged everything before they changed it.";
 
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta property="og:type" content="article">
-  <meta property="og:title" content="${siteName}">
-  <meta property="og:description" content="${description}">
+  <meta property="og:title" content="${cardTitle}">
+  <meta property="og:description" content="${siteName}">
   <meta property="og:url" content="${pageUrl}">
   <meta property="og:image" content="${image}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@caljakowski">
-  <meta name="twitter:title" content="${siteName}">
-  <meta name="twitter:description" content="${description}">
+  <meta name="twitter:title" content="${cardTitle}">
+  <meta name="twitter:description" content="${siteName}">
   <meta name="twitter:image" content="${image}">
   <meta http-equiv="refresh" content="0;url=${pageUrl}">
-  <title>${siteName}</title>
+  <title>${cardTitle}</title>
 </head>
 <body>
   <p>Redirecting to <a href="${pageUrl}">evidence board</a>...</p>
