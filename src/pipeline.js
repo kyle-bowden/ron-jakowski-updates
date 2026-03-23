@@ -14,6 +14,8 @@ import { generatePolls } from "./poll-generator.js";
 import { generateVoiceNote } from "./voice.js";
 import { sendSequence, sendTextMessage, sendVoiceNote } from "./telegram.js";
 import { generateGlimpse, updateGlimpseVoiceUrl } from "./glimpses.js";
+import { postTweet, postTweetWithImage } from "./x.js";
+import { config } from "./config.js";
 
 function pickRandom(stories) {
   return stories[Math.floor(Math.random() * stories.length)];
@@ -197,6 +199,35 @@ function formatTime(date) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+async function postToX(story) {
+  if (!config.xEnabled) {
+    console.log("[X] X credentials not configured, skipping");
+    return;
+  }
+
+  const xPosts = story.x_posts || [];
+  if (xPosts.length === 0) {
+    console.log("[X] No x_posts for this story, skipping");
+    return;
+  }
+
+  // Use first available x_post
+  const text = typeof xPosts[0] === "string" ? xPosts[0] : xPosts[0];
+
+  // Check for image-like media links
+  const imageExts = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+  const imageUrl = (story.media_links || []).find((link) => {
+    const url = typeof link === "string" ? link : link;
+    return imageExts.some((ext) => url.toLowerCase().split("?")[0].endsWith(ext));
+  });
+
+  if (imageUrl) {
+    await postTweetWithImage(text, imageUrl);
+  } else {
+    await postTweet(text);
+  }
+}
+
 async function dispatchSend(entry, schedule) {
   try {
     console.log(`\n[${new Date().toISOString()}] Sending: ${entry.story.post_title}`);
@@ -207,6 +238,12 @@ async function dispatchSend(entry, schedule) {
       console.log(`Published story ${entry.story.id}`);
     }
     console.log(`Marked entry ${entry.index} as sent`);
+
+    try {
+      await postToX(entry.story);
+    } catch (err) {
+      console.error(`[X] Tweet failed (non-fatal): ${err.message}`);
+    }
 
     const nextTime = findNextSendTime(schedule, entry.index);
     if (nextTime) {
