@@ -107,6 +107,10 @@ export async function markEntrySent(index) {
   );
 }
 
+export async function publishStory(storyId) {
+  await pool.query(`UPDATE stories SET published = TRUE WHERE id = $1`, [storyId]);
+}
+
 export async function updateStoryVoiceUrl(storyId, url) {
   await pool.query(`UPDATE stories SET voice_url = $2 WHERE id = $1`, [storyId, url]);
 }

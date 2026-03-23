@@ -7,6 +7,7 @@ import {
   createTodaySchedule,
   markEntrySent,
   updateStoryVoiceUrl,
+  publishStory,
 } from "./store.js";
 import { tagStories } from "./tagger.js";
 import { generatePolls } from "./poll-generator.js";
@@ -201,6 +202,10 @@ async function dispatchSend(entry, schedule) {
     console.log(`\n[${new Date().toISOString()}] Sending: ${entry.story.post_title}`);
     await runSend(entry.story, entry.voicePath);
     await markEntrySent(entry.index);
+    if (entry.story.id) {
+      await publishStory(entry.story.id);
+      console.log(`Published story ${entry.story.id}`);
+    }
     console.log(`Marked entry ${entry.index} as sent`);
 
     const nextTime = findNextSendTime(schedule, entry.index);

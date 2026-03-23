@@ -21,6 +21,7 @@ export async function initDb() {
       discussion_link TEXT NOT NULL,
       discussion_link_citation TEXT,
       voice_url TEXT,
+      published BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
