@@ -16,6 +16,7 @@ export async function initDb() {
       content_summary TEXT NOT NULL,
       content_summary_citation TEXT,
       text_messages JSONB NOT NULL DEFAULT '[]',
+      media_links JSONB NOT NULL DEFAULT '[]',
       persona_summary TEXT NOT NULL,
       persona_summary_citation TEXT,
       discussion_link TEXT NOT NULL,

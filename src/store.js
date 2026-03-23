@@ -15,8 +15,8 @@ export async function saveStories(newStories) {
   for (const story of newStories) {
     const { rows } = await pool.query(
       `INSERT INTO stories (batch_id, post_title, post_title_citation, content_summary, content_summary_citation,
-        text_messages, persona_summary, persona_summary_citation, discussion_link, discussion_link_citation)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        text_messages, media_links, persona_summary, persona_summary_citation, discussion_link, discussion_link_citation)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
       [
         batchId,
@@ -24,7 +24,8 @@ export async function saveStories(newStories) {
         story.post_title_citation || null,
         story.content_summary,
         story.content_summary_citation || null,
-        JSON.stringify(story.text_messages),
+        JSON.stringify(normalizeTextMessages(story.text_messages)),
+        JSON.stringify(normalizeMediaLinks(story.media_links)),
         story.persona_summary,
         story.persona_summary_citation || null,
         story.discussion_link,
@@ -139,6 +140,18 @@ export async function getStoriesWithoutTags() {
   return rows.map(rowToStory);
 }
 
+// Normalize text_messages: supports both old format (string[]) and new format ({value, value_citation}[])
+function normalizeTextMessages(messages) {
+  if (!messages) return [];
+  return messages.map((m) => (typeof m === "string" ? m : m.value));
+}
+
+// Normalize media_links: extract URLs from {value, value_citation}[] format
+function normalizeMediaLinks(links) {
+  if (!links) return [];
+  return links.map((l) => (typeof l === "string" ? l : l.value));
+}
+
 function rowToStory(row) {
   return {
     id: row.id,
@@ -146,7 +159,8 @@ function rowToStory(row) {
     post_title_citation: row.post_title_citation,
     content_summary: row.content_summary,
     content_summary_citation: row.content_summary_citation,
-    text_messages: typeof row.text_messages === "string" ? JSON.parse(row.text_messages) : row.text_messages,
+    text_messages: normalizeTextMessages(typeof row.text_messages === "string" ? JSON.parse(row.text_messages) : row.text_messages),
+    media_links: normalizeMediaLinks(typeof row.media_links === "string" ? JSON.parse(row.media_links) : (row.media_links || [])),
     persona_summary: row.persona_summary,
     persona_summary_citation: row.persona_summary_citation,
     discussion_link: row.discussion_link,

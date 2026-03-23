@@ -1059,7 +1059,7 @@
         const { data, error } = await supabaseClient
           .from('stories')
           .select(`
-            id, post_title, content_summary, text_messages,
+            id, post_title, content_summary, text_messages, media_links,
             voice_url, discussion_link, created_at,
             story_tags ( tag_id, tags ( id, name, color ) ),
             polls ( id, question, options )
@@ -1239,11 +1239,11 @@
               : fullSummary;
             article.appendChild(summary);
 
-            // Media grid from text_messages URLs
-            const messages = story.text_messages || [];
-            const allText = messages.join(' ');
-            const urlRegex = /https?:\/\/[^\s)]+/g;
-            const urls = [...new Set((allText.match(urlRegex) || []))];
+            // Media grid from media_links (preferred) or text_messages URLs (fallback)
+            const mediaLinks = (story.media_links || []).map(l => typeof l === 'string' ? l : l.value).filter(Boolean);
+            const messages = (story.text_messages || []).map(m => typeof m === 'string' ? m : m.value);
+            const textUrls = [...new Set((messages.join(' ').match(/https?:\/\/[^\s)]+/g) || []))];
+            const urls = [...new Set([...mediaLinks, ...textUrls])];
 
             if (urls.length > 0) {
               const mediaGrid = document.createElement('div');
