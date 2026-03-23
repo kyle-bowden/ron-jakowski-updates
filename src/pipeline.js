@@ -211,6 +211,7 @@ async function dispatchSend(entry, schedule) {
   try {
     console.log(`\n[${new Date().toISOString()}] Sending: ${entry.story.post_title}`);
     await runSend(entry.story, entry.voicePath);
+    if (entry.voicePath) await unlink(entry.voicePath).catch(() => {});
     await markEntrySent(schedule.id, entry.index);
     if (entry.story.id) {
       await publishStory(entry.story.id);
@@ -411,6 +412,7 @@ async function dispatchGlimpseVoice(glimpse, xText) {
 
   if (voicePath) {
     await sendVoiceNote(voicePath);
+    await unlink(voicePath).catch(() => {});
   } else {
     await sendTextMessage(glimpse.text);
   }
