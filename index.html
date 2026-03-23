@@ -594,6 +594,8 @@
     });
   </script>
 
+  <script src="res/js/cache.js"></script>
+  <script src="res/js/icons.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="res/js/supabase-config.js"></script>
   <script>
@@ -613,28 +615,18 @@
     (async () => {
       try {
         const CACHE_KEY = 'evidence_preview_cache';
-        const CACHE_TTL = 5 * 60 * 1000;
+        const supabaseClient = window.SUPABASE_CLIENT;
         let stories = null;
 
         // Check cache first
-        try {
-          const raw = sessionStorage.getItem(CACHE_KEY);
-          if (raw) {
-            const cached = JSON.parse(raw);
-            if (Date.now() - cached.timestamp < CACHE_TTL) {
-              stories = cached.data;
-            }
-          }
-        } catch {}
+        const cachedResult = window.SessionCache.get(CACHE_KEY);
+        if (cachedResult) {
+          stories = cachedResult.data;
+        }
 
         // Fetch if no cache
         if (!stories) {
-          const sb = window.supabase.createClient(
-            window.SUPABASE_CONFIG.url,
-            window.SUPABASE_CONFIG.anonKey
-          );
-
-          const { data, error } = await sb
+          const { data, error } = await supabaseClient
             .from('stories')
             .select('id, post_title, content_summary, voice_url, created_at')
             .order('created_at', { ascending: false })
@@ -643,9 +635,7 @@
           if (error || !data || data.length === 0) return;
           stories = data;
 
-          try {
-            sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: stories, timestamp: Date.now() }));
-          } catch {}
+          window.SessionCache.set(CACHE_KEY, { data: stories });
         }
 
         if (!stories || stories.length === 0) return;

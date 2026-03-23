@@ -924,6 +924,8 @@
     <div class="loading-message" id="loadingMessage">ACCESSING CLASSIFIED FILES...</div>
   </main>
 
+  <script src="res/js/cache.js"></script>
+  <script src="res/js/icons.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="res/js/supabase-config.js"></script>
   <script>
@@ -940,12 +942,8 @@
 
       const PAGE_SIZE = 20;
       const CACHE_KEY = 'evidence_board_cache';
-      const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-      const supabaseClient = window.supabase.createClient(
-        window.SUPABASE_CONFIG.url,
-        window.SUPABASE_CONFIG.anonKey
-      );
+      const supabaseClient = window.SUPABASE_CLIENT;
 
       // ── Poll voter identity ──
       function getVoterHash() {
@@ -1032,24 +1030,11 @@
 
       // ── Cache helpers ──
       function getCachedStories() {
-        try {
-          const raw = sessionStorage.getItem(CACHE_KEY);
-          if (!raw) return null;
-          const cached = JSON.parse(raw);
-          if (Date.now() - cached.timestamp > CACHE_TTL) {
-            sessionStorage.removeItem(CACHE_KEY);
-            return null;
-          }
-          return cached;
-        } catch { return null; }
+        return window.SessionCache.get(CACHE_KEY);
       }
 
       function setCacheStories(stories, offset, hasMore, glimpses) {
-        try {
-          sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-            stories, offset, hasMore, glimpses, timestamp: Date.now()
-          }));
-        } catch { /* storage full, ignore */ }
+        window.SessionCache.set(CACHE_KEY, { stories, offset, hasMore, glimpses });
       }
 
       // ── Fetch page from Supabase ──
@@ -1119,6 +1104,79 @@
         return;
       }
 
+      // ── Shared helpers ──
+
+      let openShareMenu = null;
+
+      function createAudioPlayer(label, voiceUrl, entityId) {
+        const audioContainer = document.createElement('div');
+        audioContainer.className = 'card-audio';
+        audioContainer.dataset.voiceUrl = voiceUrl;
+
+        const playBtn = document.createElement('button');
+        playBtn.className = 'play-btn';
+        playBtn.setAttribute('aria-label', 'Play voice note');
+        playBtn.innerHTML = '&#9654;';
+
+        const audioDetails = document.createElement('div');
+        audioDetails.className = 'audio-details';
+
+        const audioLabel = document.createElement('div');
+        audioLabel.className = 'audio-label';
+        audioLabel.textContent = label;
+
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress-bar';
+        const progressFill = document.createElement('div');
+        progressFill.className = 'progress-fill';
+        progressBar.appendChild(progressFill);
+
+        audioDetails.appendChild(audioLabel);
+        audioDetails.appendChild(progressBar);
+
+        const durationSpan = document.createElement('span');
+        durationSpan.className = 'duration';
+        durationSpan.textContent = '0:00';
+
+        audioContainer.appendChild(playBtn);
+        audioContainer.appendChild(audioDetails);
+        audioContainer.appendChild(durationSpan);
+
+        setupAudioPlayer(playBtn, progressBar, progressFill, durationSpan, voiceUrl, entityId);
+        return audioContainer;
+      }
+
+      function getOrCreateDayGroup(dateLabel) {
+        let groupEl = corkBoard.querySelector(`.day-group[data-date="${dateLabel}"]`);
+        let cardsContainer;
+
+        if (groupEl) {
+          cardsContainer = groupEl.querySelector('.evidence-cards');
+        } else {
+          groupEl = document.createElement('div');
+          groupEl.className = 'day-group';
+          groupEl.dataset.date = dateLabel;
+
+          const label = document.createElement('h3');
+          label.className = 'day-label';
+          label.textContent = dateLabel.toUpperCase();
+          groupEl.appendChild(label);
+
+          cardsContainer = document.createElement('div');
+          cardsContainer.className = 'evidence-cards';
+          groupEl.appendChild(cardsContainer);
+
+          const loadMoreBtn = corkBoard.querySelector('.load-more');
+          if (loadMoreBtn) {
+            corkBoard.insertBefore(groupEl, loadMoreBtn);
+          } else {
+            corkBoard.appendChild(groupEl);
+          }
+        }
+
+        return { groupEl, cardsContainer };
+      }
+
       // ── Render stories into day groups ──
       let cardIndex = 0;
 
@@ -1135,34 +1193,7 @@
 
         const newCards = [];
         for (const [dateLabel, dayStories] of groups) {
-          // Check if day group already exists
-          let groupEl = corkBoard.querySelector(`.day-group[data-date="${dateLabel}"]`);
-          let cardsContainer;
-
-          if (groupEl) {
-            cardsContainer = groupEl.querySelector('.evidence-cards');
-          } else {
-            groupEl = document.createElement('div');
-            groupEl.className = 'day-group';
-            groupEl.dataset.date = dateLabel;
-
-            const label = document.createElement('h3');
-            label.className = 'day-label';
-            label.textContent = dateLabel.toUpperCase();
-            groupEl.appendChild(label);
-
-            cardsContainer = document.createElement('div');
-            cardsContainer.className = 'evidence-cards';
-            groupEl.appendChild(cardsContainer);
-
-            // Insert before load-more button if it exists
-            const loadMoreBtn = corkBoard.querySelector('.load-more');
-            if (loadMoreBtn) {
-              corkBoard.insertBefore(groupEl, loadMoreBtn);
-            } else {
-              corkBoard.appendChild(groupEl);
-            }
-          }
+          const { cardsContainer } = getOrCreateDayGroup(dateLabel);
 
           for (const story of dayStories) {
             const rotation = (Math.random() * 4 - 2).toFixed(2);
@@ -1192,41 +1223,7 @@
 
             // Audio player — centerpiece, right after title
             if (story.voice_url) {
-              const audioContainer = document.createElement('div');
-              audioContainer.className = 'card-audio';
-              audioContainer.dataset.voiceUrl = story.voice_url;
-
-              const playBtn = document.createElement('button');
-              playBtn.className = 'play-btn';
-              playBtn.setAttribute('aria-label', 'Play voice note');
-              playBtn.innerHTML = '&#9654;';
-
-              const audioDetails = document.createElement('div');
-              audioDetails.className = 'audio-details';
-
-              const audioLabel = document.createElement('div');
-              audioLabel.className = 'audio-label';
-              audioLabel.textContent = "Cal's voice note";
-
-              const progressBar = document.createElement('div');
-              progressBar.className = 'progress-bar';
-              const progressFill = document.createElement('div');
-              progressFill.className = 'progress-fill';
-              progressBar.appendChild(progressFill);
-
-              audioDetails.appendChild(audioLabel);
-              audioDetails.appendChild(progressBar);
-
-              const durationSpan = document.createElement('span');
-              durationSpan.className = 'duration';
-              durationSpan.textContent = '0:00';
-
-              audioContainer.appendChild(playBtn);
-              audioContainer.appendChild(audioDetails);
-              audioContainer.appendChild(durationSpan);
-              article.appendChild(audioContainer);
-
-              setupAudioPlayer(playBtn, progressBar, progressFill, durationSpan, story.voice_url, story.id);
+              article.appendChild(createAudioPlayer("Cal's voice note", story.voice_url, story.id));
             }
 
             // Summary
@@ -1392,7 +1389,7 @@
 
             const shareBtn = document.createElement('button');
             shareBtn.className = 'share-btn';
-            shareBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg> SHARE';
+            shareBtn.innerHTML = window.ICONS.share + ' SHARE';
             shareWrapper.appendChild(shareBtn);
 
             const shareMenu = document.createElement('div');
@@ -1404,14 +1401,14 @@
             // Copy link
             const copyBtn = document.createElement('button');
             copyBtn.className = 'share-menu-item';
-            copyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy link';
+            copyBtn.innerHTML = window.ICONS.copy + ' Copy link';
             copyBtn.addEventListener('click', (e) => {
               e.stopPropagation();
               navigator.clipboard.writeText(storyUrl).then(() => {
-                copyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Copied';
+                copyBtn.innerHTML = window.ICONS.check + ' Copied';
                 copyBtn.classList.add('share-copied');
                 setTimeout(() => {
-                  copyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy link';
+                  copyBtn.innerHTML = window.ICONS.copy + ' Copy link';
                   copyBtn.classList.remove('share-copied');
                   shareMenu.classList.remove('open');
                 }, 1500);
@@ -1425,7 +1422,7 @@
             xLink.href = `https://x.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(storyUrl)}`;
             xLink.target = '_blank';
             xLink.rel = 'noopener';
-            xLink.innerHTML = '<svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> Share on X';
+            xLink.innerHTML = window.ICONS.x + ' Share on X';
             xLink.addEventListener('click', (e) => e.stopPropagation());
             shareMenu.appendChild(xLink);
 
@@ -1435,7 +1432,7 @@
             tgLink.href = `https://t.me/share/url?url=${encodeURIComponent(storyUrl)}&text=${encodeURIComponent(shareTitle)}`;
             tgLink.target = '_blank';
             tgLink.rel = 'noopener';
-            tgLink.innerHTML = '<svg viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg> Share on Telegram';
+            tgLink.innerHTML = window.ICONS.telegram + ' Share on Telegram';
             tgLink.addEventListener('click', (e) => e.stopPropagation());
             shareMenu.appendChild(tgLink);
 
@@ -1493,32 +1490,7 @@
         }
 
         for (const [dateLabel, dayGlimpses] of groups) {
-          let groupEl = corkBoard.querySelector(`.day-group[data-date="${dateLabel}"]`);
-          let cardsContainer;
-
-          if (groupEl) {
-            cardsContainer = groupEl.querySelector('.evidence-cards');
-          } else {
-            groupEl = document.createElement('div');
-            groupEl.className = 'day-group';
-            groupEl.dataset.date = dateLabel;
-
-            const label = document.createElement('h3');
-            label.className = 'day-label';
-            label.textContent = dateLabel.toUpperCase();
-            groupEl.appendChild(label);
-
-            cardsContainer = document.createElement('div');
-            cardsContainer.className = 'evidence-cards';
-            groupEl.appendChild(cardsContainer);
-
-            const loadMoreBtn = corkBoard.querySelector('.load-more');
-            if (loadMoreBtn) {
-              corkBoard.insertBefore(groupEl, loadMoreBtn);
-            } else {
-              corkBoard.appendChild(groupEl);
-            }
-          }
+          const { cardsContainer } = getOrCreateDayGroup(dateLabel);
 
           // Check if cluster already exists for this day
           let cluster = cardsContainer.querySelector('.glimpse-cluster');
