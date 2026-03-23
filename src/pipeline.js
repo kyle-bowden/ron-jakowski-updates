@@ -13,7 +13,7 @@ import { tagStories } from "./tagger.js";
 import { generatePolls } from "./poll-generator.js";
 import { generateVoiceNote } from "./voice.js";
 import { sendSequence, sendTextMessage, sendVoiceNote } from "./telegram.js";
-import { generateGlimpse, updateGlimpseVoiceUrl } from "./glimpses.js";
+import { generateGlimpse, updateGlimpseVoiceUrl, updateGlimpseImageUrl } from "./glimpses.js";
 import { postTweet, postTweetWithImage } from "./x.js";
 import { generateGlimpseImage } from "./image-generator.js";
 import { config } from "./config.js";
@@ -347,8 +347,24 @@ async function dispatchGlimpse() {
         const { writeFile, unlink: unlinkFile } = await import("node:fs/promises");
         const { homedir } = await import("node:os");
         const mediaDir = `${homedir()}/.openclaw/media`;
-        const mediaPath = `${mediaDir}/glimpse-${Date.now()}.png`;
+        const fileName = `glimpse-${Date.now()}.png`;
+        const mediaPath = `${mediaDir}/${fileName}`;
         await writeFile(mediaPath, imageBuffer);
+
+        // Upload to Supabase Storage for frontend display
+        try {
+          const { createClient } = await import("@supabase/supabase-js");
+          const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey);
+          const storagePath = `glimpses/${fileName}`;
+          await supabase.storage.from("media").upload(storagePath, imageBuffer, { contentType: "image/png", upsert: true });
+          const { data: urlData } = supabase.storage.from("media").getPublicUrl(storagePath);
+          if (urlData?.publicUrl && glimpse.id) {
+            await updateGlimpseImageUrl(glimpse.id, urlData.publicUrl);
+            console.log(`[Glimpse] Image uploaded to Supabase: ${urlData.publicUrl}`);
+          }
+        } catch (err) {
+          console.error(`[Glimpse] Supabase image upload failed (non-fatal): ${err.message}`);
+        }
 
         // Send text first, then image to Telegram
         await sendTextMessage(xText);

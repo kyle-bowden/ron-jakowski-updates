@@ -51,6 +51,10 @@ export async function updateGlimpseVoiceUrl(glimpseId, url) {
   await pool.query(`UPDATE glimpses SET voice_url = $1 WHERE id = $2`, [url, glimpseId]);
 }
 
+export async function updateGlimpseImageUrl(glimpseId, url) {
+  await pool.query(`UPDATE glimpses SET image_url = $1 WHERE id = $2`, [url, glimpseId]);
+}
+
 function buildAvoidanceContext(pastGlimpses) {
   if (pastGlimpses.length === 0) return "";
 

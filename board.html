@@ -1068,7 +1068,7 @@
       async function fetchGlimpses() {
         const { data, error } = await supabaseClient
           .from('glimpses')
-          .select('id, category, text, voice_url, generated_at')
+          .select('id, category, text, voice_url, image_url, generated_at')
           .order('generated_at', { ascending: false })
           .limit(50);
 
@@ -1534,6 +1534,17 @@
             // Voice player
             if (glimpse.voice_url) {
               note.appendChild(createAudioPlayer("Cal's thought", glimpse.voice_url, `glimpse-${glimpse.id}`));
+            }
+
+            // Glimpse image
+            if (glimpse.image_url) {
+              const img = document.createElement('img');
+              img.src = glimpse.image_url;
+              img.alt = 'Cal glimpse';
+              img.loading = 'lazy';
+              img.style.cssText = 'width:100%;border-radius:4px;margin-top:0.5rem;';
+              img.onerror = () => img.remove();
+              note.appendChild(img);
             }
 
             cluster.appendChild(note);
