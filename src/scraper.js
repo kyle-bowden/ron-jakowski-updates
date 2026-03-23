@@ -12,6 +12,15 @@ const PROMPT = `Extract the latest trending conspiracy stories from Reddit that 
 - 'text_messages': an array of 3-5 short, frantic Telegram messages. Use urgent emojis (e.g., 🚨, 😱, 🤫, 👁️). DO NOT include performance cues like [breathing heavily] or [whispering] here. Every message that references a specific detail, image, or video MUST include the relevant link from the 'media_links' list. Examples: "LOOK AT THIS PHOTO 🚨 [URL]", "they caught them on video!! 😱 [URL]".
 - 'persona_summary': a performance prompt for Voice AI.
 - 'discussion_link': the direct URL to the Reddit thread.
+- 'x_posts': an array of 2-3 short tweets (max 280 chars each) written as Cal Jakowski for posting on X/Twitter. Character rules:
+  - Cal is sleep-deprived, anxious, sharp — genuinely believes what he's saying
+  - Start mid-thought, no clean intros or conclusions
+  - Short fragments, not full sentences. Mix caps and lowercase for emphasis
+  - Use phrases like "listen", "look", "I'm telling you", occasional references to "Ron"
+  - Anchor each tweet in at least one concrete fact from the story — never invent facts
+  - Do NOT sound like a journalist, comedian, or satirist
+  - 70% should be cryptic observations, 20% should reference media ("did you see the clip?"), 10% should include "caljakowski.com"
+  - Examples: "the timing is wrong again.", "Ron tried to warn people about this", "I logged it before they changed it caljakowski.com"
 
 Rules for 'persona_summary':
 - Act as a paranoid conspiracy theorist urgently calling a friend.
