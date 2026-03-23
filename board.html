@@ -1440,9 +1440,9 @@
 
             shareBtn.addEventListener('click', (e) => {
               e.stopPropagation();
-              // Close any other open menus
-              document.querySelectorAll('.share-menu.open').forEach(m => { if (m !== shareMenu) m.classList.remove('open'); });
+              if (openShareMenu && openShareMenu !== shareMenu) openShareMenu.classList.remove('open');
               shareMenu.classList.toggle('open');
+              openShareMenu = shareMenu.classList.contains('open') ? shareMenu : null;
             });
 
             footer.appendChild(shareWrapper);
@@ -1520,40 +1520,7 @@
 
             // Voice player
             if (glimpse.voice_url) {
-              const audioContainer = document.createElement('div');
-              audioContainer.className = 'card-audio';
-
-              const playBtn = document.createElement('button');
-              playBtn.className = 'play-btn';
-              playBtn.setAttribute('aria-label', 'Play glimpse');
-              playBtn.innerHTML = '&#9654;';
-
-              const audioDetails = document.createElement('div');
-              audioDetails.className = 'audio-details';
-
-              const audioLabel = document.createElement('div');
-              audioLabel.className = 'audio-label';
-              audioLabel.textContent = "Cal's thought";
-
-              const progressBar = document.createElement('div');
-              progressBar.className = 'progress-bar';
-              const progressFill = document.createElement('div');
-              progressFill.className = 'progress-fill';
-              progressBar.appendChild(progressFill);
-
-              audioDetails.appendChild(audioLabel);
-              audioDetails.appendChild(progressBar);
-
-              const durationSpan = document.createElement('span');
-              durationSpan.className = 'duration';
-              durationSpan.textContent = '0:00';
-
-              audioContainer.appendChild(playBtn);
-              audioContainer.appendChild(audioDetails);
-              audioContainer.appendChild(durationSpan);
-              note.appendChild(audioContainer);
-
-              setupAudioPlayer(playBtn, progressBar, progressFill, durationSpan, glimpse.voice_url, `glimpse-${glimpse.id}`);
+              note.appendChild(createAudioPlayer("Cal's thought", glimpse.voice_url, `glimpse-${glimpse.id}`));
             }
 
             cluster.appendChild(note);
@@ -1575,7 +1542,7 @@
 
       // ── Close share menus on outside click ──
       document.addEventListener('click', () => {
-        document.querySelectorAll('.share-menu.open').forEach(m => m.classList.remove('open'));
+        if (openShareMenu) { openShareMenu.classList.remove('open'); openShareMenu = null; }
       });
 
       // ── Initial render ──
