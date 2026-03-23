@@ -351,13 +351,13 @@ async function dispatchGlimpse() {
         const mediaPath = `${mediaDir}/${fileName}`;
         await writeFile(mediaPath, imageBuffer);
 
-        // Upload to Supabase Storage for frontend display
+        // Upload to Supabase Storage for frontend display (same bucket as voice notes)
         try {
           const { createClient } = await import("@supabase/supabase-js");
           const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey);
           const storagePath = `glimpses/${fileName}`;
-          await supabase.storage.from("media").upload(storagePath, imageBuffer, { contentType: "image/png", upsert: true });
-          const { data: urlData } = supabase.storage.from("media").getPublicUrl(storagePath);
+          await supabase.storage.from("voice-notes").upload(storagePath, imageBuffer, { contentType: "image/png", upsert: true });
+          const { data: urlData } = supabase.storage.from("voice-notes").getPublicUrl(storagePath);
           if (urlData?.publicUrl && glimpse.id) {
             await updateGlimpseImageUrl(glimpse.id, urlData.publicUrl);
             console.log(`[Glimpse] Image uploaded to Supabase: ${urlData.publicUrl}`);
