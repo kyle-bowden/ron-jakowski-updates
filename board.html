@@ -943,6 +943,11 @@
       const PAGE_SIZE = 20;
       const CACHE_KEY = 'evidence_board_cache';
 
+      const votedPolls = (() => {
+        try { return new Set(JSON.parse(localStorage.getItem('evidence_board_voted') || '[]')); }
+        catch { return new Set(); }
+      })();
+
       const supabaseClient = window.SUPABASE_CLIENT;
 
       // ── Poll voter identity ──
@@ -955,22 +960,15 @@
         return hash;
       }
 
-      function getVotedPolls() {
-        try {
-          return JSON.parse(localStorage.getItem('evidence_board_voted') || '[]');
-        } catch { return []; }
-      }
-
       function markPollVoted(pollId) {
-        const voted = getVotedPolls();
-        if (!voted.includes(pollId)) {
-          voted.push(pollId);
-          localStorage.setItem('evidence_board_voted', JSON.stringify(voted));
+        if (!votedPolls.has(pollId)) {
+          votedPolls.add(pollId);
+          localStorage.setItem('evidence_board_voted', JSON.stringify([...votedPolls]));
         }
       }
 
       function hasVotedPoll(pollId) {
-        return getVotedPolls().includes(pollId);
+        return votedPolls.has(pollId);
       }
 
       async function fetchPollResults(pollId) {
@@ -1058,7 +1056,8 @@
         const { data, error } = await supabaseClient
           .from('glimpses')
           .select('id, category, text, voice_url, generated_at')
-          .order('generated_at', { ascending: false });
+          .order('generated_at', { ascending: false })
+          .limit(50);
 
         if (error) throw error;
         return data || [];
@@ -1206,6 +1205,7 @@
             article.className = 'evidence-card';
             article.id = `story-${story.id}`;
             article.dataset.tags = tagNames;
+            article.dataset.searchText = ((story.post_title || '') + ' ' + (story.content_summary || '')).toLowerCase();
             article.style.setProperty('--rotation', `${rotation}deg`);
             article.style.transitionDelay = `${cardIndex * 0.08}s`;
             article.addEventListener('transitionend', () => { article.style.transitionDelay = ''; }, { once: true });
@@ -1827,9 +1827,10 @@
       });
 
       // ── Search and filter ──
+      let searchTimer;
       searchInput.addEventListener('input', () => {
-        const query = searchInput.value.toLowerCase().trim();
-        applyFilters(query, activeTagFilter);
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(applyFilters, 200);
       });
 
       function toggleTagFilter(tagName) {
@@ -1842,16 +1843,17 @@
           document.querySelectorAll('.tag-pill.active-filter').forEach(p => p.classList.remove('active-filter'));
           document.querySelectorAll(`.tag-pill[data-tag="${CSS.escape(tagName)}"]`).forEach(p => p.classList.add('active-filter'));
         }
-        applyFilters(searchInput.value.toLowerCase().trim(), activeTagFilter);
+        applyFilters();
       }
 
-      function applyFilters(query, tagFilter) {
+      function applyFilters() {
+        const query = searchInput.value.toLowerCase().trim();
+        const tagFilter = activeTagFilter;
         for (const card of allCards) {
-          const title = (card.querySelector('.card-title')?.textContent || '').toLowerCase();
-          const summary = (card.querySelector('.card-summary')?.textContent || '').toLowerCase();
+          const text = card.dataset.searchText || '';
           const cardTags = card.dataset.tags ? card.dataset.tags.split(',') : [];
 
-          const matchesText = !query || title.includes(query) || summary.includes(query);
+          const matchesText = !query || text.includes(query);
           const matchesTag = !tagFilter || cardTags.includes(tagFilter);
 
           if (matchesText && matchesTag) {
