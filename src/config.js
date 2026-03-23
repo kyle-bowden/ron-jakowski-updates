@@ -17,4 +17,9 @@ export const config = Object.freeze({
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseServiceRoleKey: process.env.SUPABASE_SECRET_KEY,
   telegramTarget: process.env.TELEGRAM_TARGET || "@ronjakowski",
+  xApiKey: process.env.X_API_KEY || null,
+  xApiSecret: process.env.X_API_SECRET || null,
+  xAccessToken: process.env.X_ACCESS_TOKEN || null,
+  xAccessTokenSecret: process.env.X_ACCESS_TOKEN_SECRET || null,
+  xEnabled: !!(process.env.X_API_KEY && process.env.X_API_SECRET && process.env.X_ACCESS_TOKEN && process.env.X_ACCESS_TOKEN_SECRET),
 });
