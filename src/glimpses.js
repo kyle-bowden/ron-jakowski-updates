@@ -70,7 +70,7 @@ export async function generateGlimpse() {
     : allCategories[Math.floor(Math.random() * allCategories.length)];
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5.4-mini",
     temperature: 0.95,
     max_completion_tokens: 150,
     messages: [
