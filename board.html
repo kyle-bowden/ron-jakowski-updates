@@ -211,6 +211,16 @@
       z-index: 10;
     }
 
+    .evidence-card.deeplink-highlight {
+      animation: deeplink-pulse 2s ease-in-out 3;
+      z-index: 20;
+    }
+
+    @keyframes deeplink-pulse {
+      0%, 100% { box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.4); }
+      50% { box-shadow: 0 0 25px rgba(212, 175, 55, 0.8), 0 0 50px rgba(212, 175, 55, 0.4), 2px 3px 8px rgba(0, 0, 0, 0.4); }
+    }
+
     .evidence-card.filtered-out {
       opacity: 0.06;
       transform: scale(0.92) !important;
@@ -1542,6 +1552,45 @@
       // ── Initial render ──
       renderStories(stories);
       if (glimpses.length) renderGlimpses(glimpses);
+
+      // ── Deeplink: ?story=ID scrolls to and highlights a specific story ──
+      const deepStoryId = new URLSearchParams(window.location.search).get('story');
+      if (deepStoryId) {
+        let target = document.getElementById(`story-${deepStoryId}`);
+
+        // If not in current page, fetch it directly
+        if (!target) {
+          try {
+            const { data } = await supabaseClient
+              .from('stories')
+              .select(`
+                id, post_title, content_summary, text_messages, media_links,
+                voice_url, discussion_link, created_at,
+                story_tags ( tag_id, tags ( id, name, color ) ),
+                polls ( id, question, options )
+              `)
+              .eq('id', deepStoryId)
+              .single();
+
+            if (data) {
+              renderStories([data]);
+              target = document.getElementById(`story-${deepStoryId}`);
+            }
+          } catch (err) {
+            console.error('Deeplink fetch failed:', err);
+          }
+        }
+
+        if (target) {
+          // Make it visible immediately (skip intersection observer fade-in)
+          target.classList.add('visible');
+          // Scroll after a short delay to let layout settle
+          setTimeout(() => {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.classList.add('deeplink-highlight');
+          }, 300);
+        }
+      }
 
       // ── Load more button ──
       if (hasMore) {
