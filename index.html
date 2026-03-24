@@ -712,16 +712,26 @@
       const overlay = document.getElementById('heroVideoOverlay');
       const expandBtn = document.getElementById('heroVideoExpand');
 
+      function syncOverlay() {
+        if (video.paused) {
+          overlay.classList.remove('hidden');
+        } else {
+          overlay.classList.add('hidden');
+        }
+      }
+
       wrapper.addEventListener('click', (e) => {
         if (e.target === expandBtn || expandBtn.contains(e.target)) return;
         if (video.paused) {
           video.play();
-          overlay.classList.add('hidden');
         } else {
           video.pause();
-          overlay.classList.remove('hidden');
         }
       });
+
+      video.addEventListener('play', syncOverlay);
+      video.addEventListener('pause', syncOverlay);
+      video.addEventListener('ended', syncOverlay);
 
       expandBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -733,7 +743,6 @@
       });
 
       video.addEventListener('ended', () => {
-        overlay.classList.remove('hidden');
         if (document.fullscreenElement) {
           document.exitFullscreen();
         }
