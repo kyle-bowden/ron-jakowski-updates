@@ -930,6 +930,116 @@
         grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
       }
     }
+  /* Connection graph overlay */
+  .graph-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    background: rgba(0, 0, 0, 0.95);
+  }
+
+  .graph-overlay.open {
+    display: block;
+  }
+
+  .graph-overlay canvas {
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+
+  .graph-overlay canvas:active {
+    cursor: grabbing;
+  }
+
+  .graph-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(var(--gold-rgb), 0.4);
+    color: var(--gold);
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .graph-close:hover {
+    background: rgba(var(--gold-rgb), 0.2);
+  }
+
+  .graph-tooltip {
+    display: none;
+    position: absolute;
+    background: #f5f0e0;
+    color: #222;
+    padding: 1rem;
+    max-width: 300px;
+    box-shadow: 4px 6px 20px rgba(0, 0, 0, 0.5);
+    font-family: var(--font);
+    font-size: 0.75rem;
+    z-index: 10;
+  }
+
+  .graph-tooltip.visible {
+    display: block;
+  }
+
+  .graph-tooltip h4 {
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+    color: #1a1a1a;
+  }
+
+  .graph-tooltip p {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+
+  .graph-tooltip a {
+    color: var(--gold);
+    text-decoration: none;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .graph-tooltip a:hover {
+    text-decoration: underline;
+  }
+
+  .connect-btn {
+    background: none;
+    border: 1px solid #8b6914;
+    color: #8b6914;
+    font-family: var(--font);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .connect-btn:hover {
+    background: #8b6914;
+    color: #f5f0e0;
+  }
+
+  @media (max-width: 768px) {
+    .graph-tooltip {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-width: none;
+    }
+  }
   </style>
 </head>
 <body>
@@ -955,6 +1065,16 @@
     <svg class="red-strings" id="redStrings"></svg>
     <div class="loading-message" id="loadingMessage">ACCESSING CLASSIFIED FILES...</div>
   </main>
+
+  <div class="graph-overlay" id="graphOverlay">
+    <canvas id="graphCanvas"></canvas>
+    <button class="graph-close" id="graphClose">✕</button>
+    <div class="graph-tooltip" id="graphTooltip">
+      <h4 id="graphTooltipTitle"></h4>
+      <p id="graphTooltipSummary"></p>
+      <a href="#" id="graphTooltipLink">GO TO STORY &rarr;</a>
+    </div>
+  </div>
 
   <script src="res/js/cache.js"></script>
   <script src="res/js/icons.js"></script>
