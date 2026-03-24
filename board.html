@@ -1599,6 +1599,18 @@
 
             footer.appendChild(shareWrapper);
 
+            // Connection graph button (only if story has tags)
+            if (tags.length) {
+              const connectBtn = document.createElement('button');
+              connectBtn.className = 'connect-btn';
+              connectBtn.textContent = 'CONNECTIONS';
+              connectBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openConnectionGraph(story.id);
+              });
+              footer.appendChild(connectBtn);
+            }
+
             if (tags.length) {
               const tagsDiv = document.createElement('div');
               tagsDiv.className = 'card-tags';
@@ -2047,5 +2059,6 @@
   </script>
 
   <script src="res/js/particles.js"></script>
+  <script src="res/js/connection-graph.js"></script>
 </body>
 </html>
