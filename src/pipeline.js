@@ -83,7 +83,8 @@ export async function runSend(story, voicePath) {
   } else {
     console.log("No voice note, sending text only");
     for (const msg of story.text_messages) {
-      await sendTextMessage(msg);
+      const text = typeof msg === "string" ? msg : msg.value || String(msg);
+      await sendTextMessage(text);
     }
   }
   console.log("Messages sent");
@@ -192,11 +193,13 @@ async function postToX(story) {
 
   // Use first available x_post + append deeplink to evidence card
   const deeplink = story.id ? `\n\nhttps://caljakowski.com/story/${story.id}` : "";
-  const text = xPosts[0] + deeplink;
+  const rawPost = typeof xPosts[0] === "string" ? xPosts[0] : xPosts[0]?.value || String(xPosts[0]);
+  const text = rawPost + deeplink;
 
   // Check for image-like media links
   const imageExts = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-  const imageUrl = (story.media_links || []).find((url) =>
+  const rawLinks = (story.media_links || []).map((l) => typeof l === "string" ? l : l?.value || "");
+  const imageUrl = rawLinks.find((url) =>
     imageExts.some((ext) => url.toLowerCase().split("?")[0].endsWith(ext))
   );
 

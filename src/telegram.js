@@ -30,8 +30,12 @@ export async function sendVoiceNote(filePath) {
   return runOpenclaw(`--media ${shellEscape(filePath)}`);
 }
 
+function extractText(msg) {
+  return typeof msg === "string" ? msg : msg.value || String(msg);
+}
+
 export async function sendSequence(story, voicePath) {
-  const msgs = story.text_messages;
+  const msgs = (story.text_messages || []).map(extractText);
 
   for (let i = 0; i < msgs.length; i++) {
     await sendTextMessage(msgs[i]);
