@@ -177,6 +177,93 @@
       opacity: 1;
     }
 
+    /* Hero video */
+    .hero-video-wrapper {
+      position: relative;
+      width: 90%;
+      max-width: 720px;
+      margin: 2rem auto 0;
+      border: 1px solid rgba(var(--gold-rgb), 0.3);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.6), 0 0 10px rgba(var(--gold-rgb), 0.1);
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .hero-video-wrapper video {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .hero-video-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.4);
+      transition: opacity 0.3s ease;
+    }
+
+    .hero-video-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .hero-video-play {
+      width: 64px;
+      height: 64px;
+      border: 2px solid var(--gold);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.6);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .hero-video-play:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 20px rgba(var(--gold-rgb), 0.4);
+    }
+
+    .hero-video-play svg {
+      width: 24px;
+      height: 24px;
+      fill: var(--gold);
+      margin-left: 4px;
+    }
+
+    .hero-video-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 0.5rem 1rem;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+      color: rgba(var(--gold-rgb), 0.7);
+      font-family: var(--font);
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 768px) {
+      .hero-video-wrapper {
+        width: 95%;
+      }
+
+      .hero-video-play {
+        width: 48px;
+        height: 48px;
+      }
+
+      .hero-video-play svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
     /* Scroll indicator */
     .scroll-indicator {
       position: absolute;
@@ -543,6 +630,17 @@
         X
       </a>
     </div>
+    <div class="hero-video-wrapper" id="heroVideo">
+      <video preload="metadata" playsinline>
+        <source src="res/media/cal-jakowski.mp4" type="video/mp4">
+      </video>
+      <div class="hero-video-overlay" id="heroVideoOverlay">
+        <div class="hero-video-play">
+          <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+        </div>
+        <span class="hero-video-label">watch the transmission</span>
+      </div>
+    </div>
     <a href="#evidencePreview" class="scroll-indicator" id="scrollIndicator">
       <span>intercepted files below</span>
       <div class="scroll-chevron-wrapper"><div class="scroll-chevron"></div></div>
@@ -571,6 +669,27 @@
   </div>
 
   <script>
+    // Hero video player
+    (() => {
+      const wrapper = document.getElementById('heroVideo');
+      const video = wrapper.querySelector('video');
+      const overlay = document.getElementById('heroVideoOverlay');
+
+      wrapper.addEventListener('click', () => {
+        if (video.paused) {
+          video.play();
+          overlay.classList.add('hidden');
+        } else {
+          video.pause();
+          overlay.classList.remove('hidden');
+        }
+      });
+
+      video.addEventListener('ended', () => {
+        overlay.classList.remove('hidden');
+      });
+    })();
+
     // Typewriter effect
     (() => {
       const text = "Listen \u2014 I don't have much time. They're watching this page RIGHT NOW. Everything they don't want you to know? The cover-ups, the deepfakes, the signals hidden in plain sight? I'm sending it all. Raw. Unfiltered. Before they shut me down. If you're seeing this... you were meant to find it.";
