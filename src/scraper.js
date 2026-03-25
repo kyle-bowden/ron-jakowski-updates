@@ -4,7 +4,7 @@ import { firecrawlResponseSchema } from "./schema.js";
 
 const firecrawl = new Firecrawl({ apiKey: config.firecrawlApiKey });
 
-const PROMPT = `Extract the latest trending conspiracy stories from Reddit that are currently relevant in the news. For each story, provide:
+const PROMPT = `Extract up to 5 of the latest trending conspiracy stories from Reddit that are currently relevant in the news. For each story, provide:
 
 - 'post_title': a frantic, urgent headline (e.g., all caps, panicked phrasing).
 - 'content_summary': a factual overview of the story.
