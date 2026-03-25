@@ -21,8 +21,8 @@
   let panStartX = 0, panStartY = 0;
 
   // Physics constants
-  const REPULSION = 8000;
-  const ATTRACTION = 0.005;
+  const REPULSION = 25000;
+  const ATTRACTION = 0.002;
   const DAMPING = 0.85;
   const CENTER_GRAVITY = 0.01;
   const SETTLE_THRESHOLD = 0.5;
