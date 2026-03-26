@@ -105,14 +105,14 @@ function buildIntroLines(storyId, title) {
   const now = new Date();
   const date = now.toISOString().slice(0, 10).replace(/-/g, ".");
   const time = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/New_York" });
-  const shortTitle = (title || "UNKNOWN").slice(0, 22).toUpperCase();
+  const shortTitle = escapeDrawtext((title || "UNKNOWN").slice(0, 28).toUpperCase());
   const logNum = String(storyId || Math.floor(Math.random() * 999)).padStart(3, "0");
 
   return [
     { text: `> FIELD LOG #${logNum}`, delay: 0.0 },
-    { text: `> ${date} // ${time} EST`, delay: 0.8 },
-    { text: `> SUBJ\\: ${escapeDrawtext(shortTitle)}...`, delay: 1.6 },
-    { text: `> CLEARANCE\\: ████ REDACTED`, delay: 2.6 },
+    { text: `> ${date} // ${time.replace(":", "\\:")}`, delay: 0.8 },
+    { text: `> SUBJ\\: ${shortTitle}`, delay: 1.6 },
+    { text: `> CLEARANCE\\: REDACTED`, delay: 2.8 },
     { text: `> \\[REC ●\\]`, delay: 3.5 },
   ];
 }
@@ -140,10 +140,12 @@ function addTypewriterText(filters, lastLabel, text, prefix, startTime, endTime,
   return lastLabel;
 }
 
+const INTRO_FONT_SIZE = 38;
+
 function addTypewriterLine(filters, lastLabel, line, lineIndex, yPos, introDuration) {
   lastLabel = addTypewriterText(
     filters, lastLabel, line.text, `type${lineIndex}`,
-    line.delay, introDuration, 80, yPos, "0x33ff33", 52
+    line.delay, introDuration, 80, yPos, "0x33ff33", INTRO_FONT_SIZE
   );
 
   // Blinking cursor after typing finishes
@@ -151,7 +153,7 @@ function addTypewriterLine(filters, lastLabel, line, lineIndex, yPos, introDurat
   const cursorLabel = `cursor${lineIndex}`;
   filters.push(
     `[${lastLabel}]drawtext=text='_':` +
-    `fontcolor=0x33ff33:fontsize=52:` +
+    `fontcolor=0x33ff33:fontsize=${INTRO_FONT_SIZE}:` +
     `x=80+text_w:y=${yPos}:` +
     `font=Courier:` +
     `enable='lt(mod(t,0.8),0.5)*between(t,${typeEnd.toFixed(3)},${introDuration.toFixed(3)})'[${cursorLabel}]`
@@ -173,13 +175,13 @@ function buildFiltergraph(images, voiceDuration, title, messages, storyId, iconS
     `colorbalance=bs=-0.3:gs=-0.3:rs=-0.3[bgraw]`
   );
   filters.push(
-    `[bgraw]drawbox=x=0:y=0:w=1080:h=1920:color=black@0.55:t=fill[bg]`
+    `[bgraw]drawbox=x=0:y=0:w=1080:h=1920:color=black@0.7:t=fill[bg]`
   );
 
   // === INTRO: typewriter terminal lines ===
   const introLines = buildIntroLines(storyId, title);
-  const introStartY = 550;
-  const introLineSpacing = 110;
+  const introStartY = 600;
+  const introLineSpacing = 80;
 
   for (let i = 0; i < introLines.length; i++) {
     const yPos = introStartY + i * introLineSpacing;
@@ -218,30 +220,23 @@ function buildFiltergraph(images, voiceDuration, title, messages, storyId, iconS
     }
   }
 
-  // Title overlay — typewriter effect starting after intro
-  const wrappedTitle = escapeDrawtext(wrapText(title, 28));
+  // Title overlay — white for max contrast
+  const wrappedTitle = escapeDrawtext(wrapText(title, 34));
   lastLabel = addTypewriterText(
     filters, lastLabel, wrappedTitle, "title",
-    offset, totalDuration, "(w-text_w)/2", 80, "0xd4af37", 44, 0.03
+    offset, totalDuration, "(w-text_w)/2", 80, "white", 48, 0.03
   );
 
-  // Branding — types out right after title finishes
-  const brandStart = offset + wrappedTitle.length * 0.03 + 0.5;
-  lastLabel = addTypewriterText(
-    filters, lastLabel, "caljakowski.com", "brand",
-    brandStart, totalDuration, "(w-text_w)/2", "h-350", "0x808080", 24, 0.05
-  );
-
-  // Subtitle overlays — typewriter effect for each message
+  // Subtitle overlays — above YouTube bottom UI zone (safe above y=1420)
   if (messages.length > 0) {
     const perMsg = voiceDuration / messages.length;
     for (let i = 0; i < messages.length; i++) {
       const start = offset + i * perMsg;
       const end = Math.min(offset + (i + 1) * perMsg, totalDuration);
-      const msgText = escapeDrawtext(wrapText(typeof messages[i] === "string" ? messages[i] : messages[i]?.value || "", 35));
+      const msgText = escapeDrawtext(wrapText(typeof messages[i] === "string" ? messages[i] : messages[i]?.value || "", 30));
       lastLabel = addTypewriterText(
         filters, lastLabel, msgText, `sub${i}`,
-        start, end, "(w-text_w)/2", "h-500", "white", 32, 0.03
+        start, end, "(w-text_w)/2", "h-580", "0xcccccc", 42, 0.03
       );
     }
   }
@@ -256,10 +251,10 @@ function buildFiltergraph(images, voiceDuration, title, messages, storyId, iconS
   );
   lastLabel = "outrobg";
 
-  // "FOLLOW THE PROTOCOL" header — typewriter
+  // "FOLLOW THE PROTOCOL" header
   lastLabel = addTypewriterText(
     filters, lastLabel, "FOLLOW THE PROTOCOL", "outrohdr",
-    outroStart + 0.3, totalDuration, "(w-text_w)/2", 500, "0xd4af37", 48, 0.04
+    outroStart + 0.3, totalDuration, "(w-text_w)/2", 500, "white", 48, 0.04
   );
 
   // Icon overlays (Telegram, X, Globe) — appear alongside text
@@ -420,37 +415,33 @@ export async function generateThumbnail(story) {
   const outputPath = join(TMP_DIR, `thumb-${storyId}-${Date.now()}.jpg`);
   await mkdir(TMP_DIR, { recursive: true });
 
-  const title = escapeDrawtext(wrapText((story.post_title || "BREAKING").toUpperCase(), 20));
-  const logNum = String(storyId).padStart(3, "0");
+  const title = escapeDrawtext(wrapText((story.post_title || "BREAKING").toUpperCase(), 12));
 
   const filtergraph = [
-    // Background
+    // Background — heavy dark overlay
     `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,` +
-    `colorbalance=bs=-0.3:gs=-0.3:rs=-0.3[bgraw]`,
-    `[bgraw]drawbox=x=0:y=0:w=1080:h=1920:color=black@0.6:t=fill[bg]`,
+    `colorbalance=bs=-0.4:gs=-0.4:rs=-0.4[bgraw]`,
+    `[bgraw]drawbox=x=0:y=0:w=1080:h=1920:color=black@0.75:t=fill[bg]`,
 
-    // Red "CLASSIFIED" stamp — angled
-    `[bg]drawtext=text='CLASSIFIED':fontcolor=red@0.25:fontsize=120:` +
-    `x=(w-text_w)/2:y=300:font=Courier[stamp]`,
+    // Red urgency bars — top and bottom
+    `[bg]drawbox=x=0:y=0:w=1080:h=14:color=red:t=fill[bar1]`,
+    `[bar1]drawbox=x=0:y=1906:w=1080:h=14:color=red:t=fill[bars]`,
 
-    // Field log number
-    `[stamp]drawtext=text='FIELD LOG #${logNum}':fontcolor=0x33ff33:fontsize=40:` +
-    `x=(w-text_w)/2:y=580:font=Courier[log]`,
+    // "CLASSIFIED" — top area
+    `[bars]drawtext=text='CLASSIFIED':fontcolor=red:fontsize=130:` +
+    `x=(w-text_w)/2:y=160:font=Courier[stamp]`,
 
-    // Title
-    `[log]drawtext=text='${title}':fontcolor=0xd4af37:fontsize=56:` +
-    `x=(w-text_w)/2:y=700:font=Courier:line_spacing=12[titled]`,
+    // Red separator
+    `[stamp]drawbox=x=100:y=340:w=880:h=4:color=red@0.5:t=fill[sep1]`,
 
-    // Redacted bar
-    `[titled]drawbox=x=200:y=1100:w=680:h=8:color=0xd4af37:t=fill[bar]`,
+    // Dark panel behind title for contrast
+    `[sep1]drawbox=x=60:y=420:w=960:h=600:color=black@0.5:t=fill[panel]`,
 
-    // "THE REALITY PROTOCOL"
-    `[bar]drawtext=text='THE REALITY PROTOCOL':fontcolor=0x33ff33@0.6:fontsize=32:` +
-    `x=(w-text_w)/2:y=1150:font=Courier[proto]`,
+    // Title — white for max contrast at small sizes
+    `[panel]drawtext=text='${title}':fontcolor=white:fontsize=88:` +
+    `x=(w-text_w)/2:y=480:font=Courier:line_spacing=24[titled]`,
 
-    // Branding
-    `[proto]drawtext=text='caljakowski.com':fontcolor=0x808080:fontsize=28:` +
-    `x=(w-text_w)/2:y=1700:font=Courier[out]`,
+    `[titled]copy[out]`,
   ].join(";\n");
 
   const args = [
