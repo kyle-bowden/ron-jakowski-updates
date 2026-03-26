@@ -24,11 +24,18 @@ export async function uploadYouTubeShort(videoPath, story) {
   const youtube = google.youtube({ version: "v3", auth });
 
   const title = (story.post_title || "BREAKING").slice(0, 90) + " #Shorts";
-  const deeplink = story.id ? `\n\nhttps://caljakowski.com/story/${story.id}` : "";
+  const storyLink = story.id ? `https://caljakowski.com/story/${story.id}` : "https://caljakowski.com";
   const description =
     (story.content_summary || "") +
-    deeplink +
-    "\n\n#conspiracy #shorts #caljakowski #theRealityProtocol";
+    `\n\n` +
+    `Full evidence: ${storyLink}\n` +
+    `\n` +
+    `Follow The Reality Protocol:\n` +
+    `Telegram: https://t.me/ronjakowski\n` +
+    `X: https://x.com/caljakowski\n` +
+    `Evidence Board: https://caljakowski.com\n` +
+    `\n` +
+    `#conspiracy #shorts #caljakowski #theRealityProtocol`;
 
   const res = await youtube.videos.insert({
     part: ["snippet", "status"],
