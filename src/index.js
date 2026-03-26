@@ -45,6 +45,16 @@ async function run() {
       process.exit(0);
       break;
 
+    case "--video":
+      await runFromStored({ step: "video", storyIndex: parseStoryIndex() });
+      process.exit(0);
+      break;
+
+    case "--youtube":
+      await runFromStored({ step: "youtube", storyIndex: parseStoryIndex() });
+      process.exit(0);
+      break;
+
     case "--send":
       await runFromStored({ step: "send", storyIndex: parseStoryIndex() });
       process.exit(0);

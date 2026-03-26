@@ -1,4 +1,6 @@
-import { unlink } from "node:fs/promises";
+import { unlink, writeFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
+import { TMP_DIR, downloadBuffer, isImageUrl } from "./media-util.js";
 import { scrapeStories } from "./scraper.js";
 import {
   saveStories,
@@ -7,11 +9,14 @@ import {
   createTodaySchedule,
   markEntrySent,
   updateStoryVoiceUrl,
+  updateStoryYoutubeUrl,
   publishStory,
 } from "./store.js";
 import { tagStories } from "./tagger.js";
 import { generatePolls } from "./poll-generator.js";
 import { generateVoiceNote } from "./voice.js";
+import { generateShort } from "./video.js";
+import { uploadYouTubeShort } from "./youtube.js";
 import { sendSequence, sendTextMessage, sendVoiceNote } from "./telegram.js";
 import { generateGlimpse, updateGlimpseVoiceUrl, updateGlimpseImageUrl } from "./glimpses.js";
 import { postTweet, postTweetWithImage } from "./x.js";
@@ -122,9 +127,19 @@ async function prepareScheduleFromStories(stories) {
       console.error(`Voice generation failed for "${story.post_title}":`, err.message);
     }
 
+    let videoPath = null;
+    if (config.youtubeEnabled && voicePath) {
+      try {
+        videoPath = await generateShort(story, voicePath);
+      } catch (err) {
+        console.error(`Video generation failed for "${story.post_title}":`, err.message);
+      }
+    }
+
     entries.push({
       story,
       voicePath,
+      videoPath,
       sendAt: sendTimes[i] ? sendTimes[i].toISOString() : null,
       sent: false,
       sentAt: null,
@@ -196,12 +211,8 @@ async function postToX(story) {
   const rawPost = typeof xPosts[0] === "string" ? xPosts[0] : xPosts[0]?.value || String(xPosts[0]);
   const text = rawPost + deeplink;
 
-  // Check for image-like media links
-  const imageExts = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
   const rawLinks = (story.media_links || []).map((l) => typeof l === "string" ? l : l?.value || "");
-  const imageUrl = rawLinks.find((url) =>
-    imageExts.some((ext) => url.toLowerCase().split("?")[0].endsWith(ext))
-  );
+  const imageUrl = rawLinks.find((url) => isImageUrl(url));
 
   if (imageUrl) {
     await postTweetWithImage(text, imageUrl);
@@ -227,6 +238,18 @@ async function dispatchSend(entry, schedule) {
     } catch (err) {
       console.error(`[X] Tweet failed (non-fatal): ${err.message}`);
     }
+
+    try {
+      if (config.youtubeEnabled && entry.videoPath) {
+        const yt = await uploadYouTubeShort(entry.videoPath, entry.story);
+        if (yt && entry.story.id) {
+          await updateStoryYoutubeUrl(entry.story.id, yt.videoId, yt.videoUrl);
+        }
+      }
+    } catch (err) {
+      console.error(`[YT] Upload failed (non-fatal): ${err.message}`);
+    }
+    if (entry.videoPath) await unlink(entry.videoPath).catch(() => {});
 
     const nextTime = findNextSendTime(schedule, entry.index);
     if (nextTime) {
@@ -436,11 +459,16 @@ export async function runFromStored({ step, storyIndex, voiceFile }) {
     throw new Error("No stored stories. Run --scrape first.");
   }
 
-  const selected =
-    storyIndex != null ? stories[storyIndex] : pickRandom(stories);
+  let selected;
+  if (storyIndex != null) {
+    // Try matching by story ID first, fall back to array index
+    selected = stories.find((s) => s.id === storyIndex) || stories[storyIndex];
+  } else {
+    selected = pickRandom(stories);
+  }
 
   if (!selected) {
-    throw new Error(`No story at index ${storyIndex}. ${stories.length} stories stored.`);
+    throw new Error(`No story with id or index ${storyIndex}. ${stories.length} stories stored.`);
   }
 
   console.log(`Using story: ${selected.post_title}`);
@@ -449,10 +477,41 @@ export async function runFromStored({ step, storyIndex, voiceFile }) {
   let generated = false;
 
   try {
-    if (!voicePath && (step === "voice" || step === "send")) {
+    // For video/youtube steps, reuse existing voice from Supabase if available
+    if (!voicePath && (step === "video" || step === "youtube") && selected.voice_url) {
+      try {
+        console.log(`Downloading existing voice from Supabase...`);
+        await mkdir(TMP_DIR, { recursive: true });
+        const buf = await downloadBuffer(selected.voice_url);
+        voicePath = join(TMP_DIR, `voice-dl-${Date.now()}.ogg`);
+        await writeFile(voicePath, buf);
+        generated = true;
+        console.log(`Voice downloaded: ${voicePath}`);
+      } catch (err) {
+        console.warn(`Voice download failed, will regenerate: ${err.message}`);
+        voicePath = null;
+      }
+    }
+
+    if (!voicePath && (step === "voice" || step === "send" || step === "video" || step === "youtube")) {
       const voiceResult = await runVoice(selected);
       voicePath = voiceResult.localPath;
       generated = true;
+    }
+
+    if (step === "video" || step === "youtube") {
+      if (!voicePath) throw new Error("Voice generation failed, cannot create video");
+      const videoPath = await generateShort(selected, voicePath);
+      if (!videoPath) throw new Error("Video generation returned null");
+      console.log(`Video saved: ${videoPath}`);
+
+      if (step === "youtube") {
+        const yt = await uploadYouTubeShort(videoPath, selected);
+        if (yt && selected.id) {
+          await updateStoryYoutubeUrl(selected.id, yt.videoId, yt.videoUrl);
+        }
+        await unlink(videoPath).catch(() => {});
+      }
     }
 
     if (step === "send" || step === "send-only") {

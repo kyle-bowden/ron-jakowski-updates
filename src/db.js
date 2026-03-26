@@ -22,6 +22,8 @@ export async function initDb() {
       discussion_link TEXT NOT NULL,
       discussion_link_citation TEXT,
       voice_url TEXT,
+      youtube_video_id TEXT,
+      youtube_url TEXT,
       published BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -38,6 +40,7 @@ export async function initDb() {
       entry_index INTEGER NOT NULL,
       story JSONB NOT NULL,
       voice_path TEXT,
+      video_path TEXT,
       send_at TIMESTAMPTZ,
       sent BOOLEAN NOT NULL DEFAULT FALSE,
       sent_at TIMESTAMPTZ,

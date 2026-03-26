@@ -63,6 +63,7 @@ export async function getTodaySchedule() {
     entries: entries.map((e) => ({
       story: e.story,
       voicePath: e.voice_path,
+      videoPath: e.video_path,
       sendAt: e.send_at ? e.send_at.toISOString() : null,
       sent: e.sent,
       sentAt: e.sent_at ? e.sent_at.toISOString() : null,
@@ -82,13 +83,14 @@ export async function createTodaySchedule(entries) {
   for (let i = 0; i < entries.length; i++) {
     const e = entries[i];
     await pool.query(
-      `INSERT INTO schedule_entries (schedule_id, entry_index, story, voice_path, send_at, sent)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO schedule_entries (schedule_id, entry_index, story, voice_path, video_path, send_at, sent)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         scheduleId,
         i,
         JSON.stringify(e.story),
         e.voicePath || null,
+        e.videoPath || null,
         e.sendAt || null,
         false,
       ]
@@ -112,6 +114,13 @@ export async function publishStory(storyId) {
 
 export async function updateStoryVoiceUrl(storyId, url) {
   await pool.query(`UPDATE stories SET voice_url = $2 WHERE id = $1`, [storyId, url]);
+}
+
+export async function updateStoryYoutubeUrl(storyId, videoId, url) {
+  await pool.query(
+    `UPDATE stories SET youtube_video_id = $2, youtube_url = $3 WHERE id = $1`,
+    [storyId, videoId, url]
+  );
 }
 
 export async function saveStoryTags(storyId, tagNames) {

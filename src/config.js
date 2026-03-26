@@ -24,4 +24,9 @@ export const config = Object.freeze({
   xEnabled: !!(process.env.X_API_KEY && process.env.X_API_SECRET && process.env.X_ACCESS_TOKEN && process.env.X_ACCESS_TOKEN_SECRET),
   nanobananaApiKey: process.env.NANOBANANA_API_KEY || null,
   nanobananaEnabled: !!process.env.NANOBANANA_API_KEY,
+  youtubeClientId: process.env.YOUTUBE_CLIENT_ID || null,
+  youtubeClientSecret: process.env.YOUTUBE_CLIENT_SECRET || null,
+  youtubeRefreshToken: process.env.YOUTUBE_REFRESH_TOKEN || null,
+  youtubeEnabled: !!(process.env.YOUTUBE_CLIENT_ID && process.env.YOUTUBE_CLIENT_SECRET && process.env.YOUTUBE_REFRESH_TOKEN),
+  youtubePrivacy: process.env.YOUTUBE_PRIVACY || "public",
 });

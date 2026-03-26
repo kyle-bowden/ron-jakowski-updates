@@ -2,14 +2,12 @@ import { ElevenLabsClient } from "elevenlabs";
 import { createClient } from "@supabase/supabase-js";
 import { createWriteStream } from "node:fs";
 import { copyFile, unlink, mkdir, readFile } from "node:fs/promises";
-import { join, basename, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { homedir } from "node:os";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import { config } from "./config.js";
-
-const TMP_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "tmp");
+import { TMP_DIR } from "./media-util.js";
 const OPENCLAW_MEDIA_DIR = join(homedir(), ".openclaw", "media");
 
 const client = new ElevenLabsClient({ apiKey: config.elevenlabsApiKey });

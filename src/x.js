@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import https from "node:https";
-import http from "node:http";
 import { config } from "./config.js";
+import { downloadBuffer, guessMimeType } from "./media-util.js";
 
 function percentEncode(str) {
   return encodeURIComponent(str).replace(/[!'()*]/g, (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase());
@@ -94,30 +94,6 @@ export async function postTweet(text) {
   return result.data.data.id;
 }
 
-function downloadImage(imageUrl) {
-  return new Promise((resolve, reject) => {
-    const mod = imageUrl.startsWith("https") ? https : http;
-    mod.get(imageUrl, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return downloadImage(res.headers.location).then(resolve).catch(reject);
-      }
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        return reject(new Error(`Image download failed: ${res.statusCode}`));
-      }
-      const chunks = [];
-      res.on("data", (c) => chunks.push(c));
-      res.on("end", () => resolve(Buffer.concat(chunks)));
-      res.on("error", reject);
-    }).on("error", reject);
-  });
-}
-
-function guessMimeType(url) {
-  const ext = url.split("?")[0].split(".").pop().toLowerCase();
-  const types = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp" };
-  return types[ext] || "image/jpeg";
-}
-
 async function uploadMedia(imageBuffer) {
   const url = "https://upload.twitter.com/1.1/media/upload.json";
   const base64Data = imageBuffer.toString("base64");
@@ -144,7 +120,7 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 export async function postTweetWithImage(text, imageUrl) {
   console.log(`[X] Posting tweet with image: ${text.slice(0, 50)}...`);
   try {
-    const imageBuffer = await downloadImage(imageUrl);
+    const imageBuffer = await downloadBuffer(imageUrl);
     if (imageBuffer.length > MAX_IMAGE_SIZE) {
       console.warn(`[X] Image too large (${(imageBuffer.length / 1024 / 1024).toFixed(1)}MB), posting text only`);
       return postTweet(text);
