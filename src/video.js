@@ -414,3 +414,62 @@ export async function generateShort(story, voicePath) {
     throw err;
   }
 }
+
+export async function generateThumbnail(story) {
+  const storyId = story.id || Date.now();
+  const outputPath = join(TMP_DIR, `thumb-${storyId}-${Date.now()}.jpg`);
+  await mkdir(TMP_DIR, { recursive: true });
+
+  const title = escapeDrawtext(wrapText((story.post_title || "BREAKING").toUpperCase(), 20));
+  const logNum = String(storyId).padStart(3, "0");
+
+  const filtergraph = [
+    // Background
+    `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,` +
+    `colorbalance=bs=-0.3:gs=-0.3:rs=-0.3[bgraw]`,
+    `[bgraw]drawbox=x=0:y=0:w=1080:h=1920:color=black@0.6:t=fill[bg]`,
+
+    // Red "CLASSIFIED" stamp — angled
+    `[bg]drawtext=text='CLASSIFIED':fontcolor=red@0.25:fontsize=120:` +
+    `x=(w-text_w)/2:y=300:font=Courier[stamp]`,
+
+    // Field log number
+    `[stamp]drawtext=text='FIELD LOG #${logNum}':fontcolor=0x33ff33:fontsize=40:` +
+    `x=(w-text_w)/2:y=580:font=Courier[log]`,
+
+    // Title
+    `[log]drawtext=text='${title}':fontcolor=0xd4af37:fontsize=56:` +
+    `x=(w-text_w)/2:y=700:font=Courier:line_spacing=12[titled]`,
+
+    // Redacted bar
+    `[titled]drawbox=x=200:y=1100:w=680:h=8:color=0xd4af37:t=fill[bar]`,
+
+    // "THE REALITY PROTOCOL"
+    `[bar]drawtext=text='THE REALITY PROTOCOL':fontcolor=0x33ff33@0.6:fontsize=32:` +
+    `x=(w-text_w)/2:y=1150:font=Courier[proto]`,
+
+    // Branding
+    `[proto]drawtext=text='caljakowski.com':fontcolor=0x808080:fontsize=28:` +
+    `x=(w-text_w)/2:y=1700:font=Courier[out]`,
+  ].join(";\n");
+
+  const args = [
+    "-loop", "1", "-i", BG_IMAGE,
+    "-filter_complex", filtergraph,
+    "-map", "[out]",
+    "-frames:v", "1",
+    "-q:v", "2",
+    "-y",
+    outputPath,
+  ];
+
+  try {
+    await execFileAsync("ffmpeg", args, { timeout: 30000, maxBuffer: 10 * 1024 * 1024 });
+    console.log(`[Video] Thumbnail generated: ${outputPath}`);
+    return outputPath;
+  } catch (err) {
+    console.error(`[Video] Thumbnail generation failed: ${err.message}`);
+    await unlink(outputPath).catch(() => {});
+    return null;
+  }
+}

@@ -1,7 +1,8 @@
 import { google } from "googleapis";
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { stat, unlink } from "node:fs/promises";
 import { config } from "./config.js";
+import { generateThumbnail } from "./video.js";
 
 function getAuthClient() {
   const oauth2 = new google.auth.OAuth2(
@@ -59,6 +60,24 @@ export async function uploadYouTubeShort(videoPath, story) {
   const videoId = res.data.id;
   const videoUrl = `https://youtube.com/shorts/${videoId}`;
   console.log(`[YT] Uploaded: ${videoUrl}`);
+
+  // Upload custom thumbnail
+  try {
+    const thumbPath = await generateThumbnail(story);
+    if (thumbPath) {
+      await youtube.thumbnails.set({
+        videoId,
+        media: {
+          mimeType: "image/jpeg",
+          body: createReadStream(thumbPath),
+        },
+      });
+      console.log(`[YT] Thumbnail set for ${videoId}`);
+      await unlink(thumbPath).catch(() => {});
+    }
+  } catch (err) {
+    console.error(`[YT] Thumbnail upload failed (non-fatal): ${err.message}`);
+  }
 
   return { videoId, videoUrl };
 }
