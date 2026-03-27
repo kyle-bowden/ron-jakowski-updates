@@ -22,7 +22,8 @@ export function downloadBuffer(url, redirects = 5) {
   return new Promise((resolve, reject) => {
     if (redirects <= 0) return reject(new Error("Too many redirects"));
     const mod = url.startsWith("https") ? https : http;
-    mod.get(url, { timeout: 10000 }, (res) => {
+    const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" };
+    mod.get(url, { timeout: 10000, headers }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         res.resume();
         return downloadBuffer(res.headers.location, redirects - 1).then(resolve).catch(reject);
