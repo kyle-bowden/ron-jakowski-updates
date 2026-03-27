@@ -233,7 +233,10 @@ function buildFiltergraph(images, voiceDuration, title, messages, storyId, iconS
     for (let i = 0; i < messages.length; i++) {
       const start = offset + i * perMsg;
       const end = Math.min(offset + (i + 1) * perMsg, totalDuration);
-      const msgText = escapeDrawtext(wrapText(typeof messages[i] === "string" ? messages[i] : messages[i]?.value || "", 30));
+      const rawMsg = (typeof messages[i] === "string" ? messages[i] : messages[i]?.value || "")
+        .replace(/https?:\/\/\S+/g, "").replace(/\s{2,}/g, " ").trim();
+      if (!rawMsg) continue;
+      const msgText = escapeDrawtext(wrapText(rawMsg, 30));
       lastLabel = addTypewriterText(
         filters, lastLabel, msgText, `sub${i}`,
         start, end, "(w-text_w)/2", "h-580", "0xcccccc", 42, 0.03
