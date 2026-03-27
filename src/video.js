@@ -378,8 +378,12 @@ export async function generateShort(story, voicePath) {
     `[3:a]volume=0.25[ambience];` +
     `[voice][music][ambience]amix=inputs=3:duration=first[aout]`;
 
+  // Write filtergraph to file to avoid E2BIG (arg list too long)
+  const filterScriptPath = join(TMP_DIR, `filter-${storyId}-${timestamp}.txt`);
+  await writeFile(filterScriptPath, filtergraph + ";\n" + audioFilter);
+
   args.push(
-    "-filter_complex", filtergraph + ";\n" + audioFilter,
+    "-filter_complex_script", filterScriptPath,
     "-map", "[out]",
     "-map", "[aout]",
     "-c:v", "libx264",
@@ -397,13 +401,14 @@ export async function generateShort(story, voicePath) {
     await execFileAsync("ffmpeg", args, { timeout: 600000, maxBuffer: 10 * 1024 * 1024 });
     console.log(`[Video] Short generated: ${outputPath}`);
 
-    // Cleanup media dir
+    await unlink(filterScriptPath).catch(() => {});
     await rm(mediaDir, { recursive: true, force: true }).catch(() => {});
 
     return outputPath;
   } catch (err) {
     console.error(`[Video] ffmpeg failed: ${err.message}`);
     if (err.stderr) console.error(`[Video] stderr: ${err.stderr.slice(0, 500)}`);
+    await unlink(filterScriptPath).catch(() => {});
     await rm(mediaDir, { recursive: true, force: true }).catch(() => {});
     await unlink(outputPath).catch(() => {});
     throw err;
