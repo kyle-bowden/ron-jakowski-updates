@@ -5,7 +5,13 @@ import { getRecentStoryTitles } from "./store.js";
 
 const firecrawl = new Firecrawl({ apiKey: config.firecrawlApiKey });
 
-const PROMPT = `Extract up to 5 of the latest trending conspiracy stories from Reddit that are currently relevant in the news. For each story, provide:
+const PROMPT = `Extract up to 5 of the latest trending conspiracy stories from Reddit and conspiracy news sites that are currently relevant in the news. Also check these sources for stories:
+- Infowars, Before It's News, Natural News
+- The Vigilant Citizen, Project Camelot, AboveTopSecret
+- Godlike Productions, Zero Hedge
+- The Corbett Report, Collective Evolution
+
+For each story, provide:
 
 - 'post_title': a frantic, urgent headline (e.g., all caps, panicked phrasing).
 - 'content_summary': a factual overview of the story.
