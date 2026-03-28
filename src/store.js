@@ -123,6 +123,14 @@ export async function updateStoryYoutubeUrl(storyId, videoId, url) {
   );
 }
 
+export async function getRecentStoryTitles(days = 2) {
+  const { rows } = await pool.query(
+    `SELECT post_title FROM stories WHERE created_at > NOW() - make_interval(days => $1) ORDER BY created_at DESC`,
+    [days]
+  );
+  return rows.map((r) => r.post_title);
+}
+
 export async function saveStoryTags(storyId, tagNames) {
   for (const name of tagNames) {
     await pool.query(`INSERT INTO tags (name) VALUES ($1) ON CONFLICT (name) DO NOTHING`, [name]);

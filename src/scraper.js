@@ -1,6 +1,7 @@
 import Firecrawl from "@mendable/firecrawl-js";
 import { config } from "./config.js";
 import { firecrawlResponseSchema } from "./schema.js";
+import { getRecentStoryTitles } from "./store.js";
 
 const firecrawl = new Firecrawl({ apiKey: config.firecrawlApiKey });
 
@@ -33,8 +34,15 @@ Rules for 'persona_summary':
 - Tone: Manic but believable.`;
 
 export async function scrapeStories() {
+  let prompt = PROMPT;
+
+  const recentTitles = await getRecentStoryTitles(2);
+  if (recentTitles.length > 0) {
+    prompt += `\n\nIMPORTANT: The following topics were already covered in the last 2 days. Do NOT return stories on the same topics unless there are significant new developments:\n${recentTitles.map((t) => `- ${t}`).join("\n")}`;
+  }
+
   const result = await firecrawl.agent({
-    prompt: PROMPT,
+    prompt,
     schema: firecrawlResponseSchema,
     model: "spark-1-pro",
   });
